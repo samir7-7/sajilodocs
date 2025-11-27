@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Test Register (no DB)</title>
+    <style>
+      body {
+        font-family: Segoe UI, Roboto, Arial;
+        margin: 20px;
+      }
+      input {
+        display: block;
+        margin: 8px 0;
+        padding: 8px;
+        width: 320px;
+      }
+      button {
+        padding: 8px 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Register (no DB)</h1>
+    <p>
+      This page posts a JSON registration to the backend endpoint
+      <code>/api/auth/register-no-db/</code>.
+    </p>
+
+    <form id="form">
+      <input
+        name="username"
+        placeholder="username (e.g. alice)"
+        value="alice"
+      />
+      <input
+        name="email"
+        placeholder="email (e.g. alice@example.com)"
+        value="alice@example.com"
+      />
+      <input
+        name="password"
+        placeholder="password"
+        type="password"
+        value="secret123"
+      />
+      <button type="submit">Register</button>
+    </form>
+
+    <p>
+      <button id="sample">Fill sample</button>
+      <button id="clear">Clear</button>
+    </p>
+
+    <pre
+      id="result"
+      style="background: #f6f6f6; padding: 12px; border: 1px solid #ddd"
+    ></pre>
+
+    <script>
+      // Backend URL (adjust if your dev server binds to a different host/port)
+      const BACKEND = "http://127.0.0.1:8000";
+
+      const form = document.getElementById("form");
+      const result = document.getElementById("result");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const payload = {
+          username: form.username.value,
+          email: form.email.value,
+          password: form.password.value,
+        };
+
+        result.textContent = "Sending...";
+
+        try {
+          const res = await fetch(BACKEND + "/api/auth/register-no-db/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          result.textContent = JSON.stringify(
+            { status: res.status, body: data },
+            null,
+            2
+          );
+        } catch (err) {
+          result.textContent = "Request failed: " + err;
+        }
+      });
+
+      document.getElementById("sample").addEventListener("click", () => {
+        form.username.value = "bob";
+        form.email.value = "bob@example.com";
+        form.password.value = "password123";
+      });
+      document.getElementById("clear").addEventListener("click", () => {
+        form.username.value = "";
+        form.email.value = "";
+        form.password.value = "";
+        result.textContent = "";
+      });
+    </script>
+  </body>
+</html>
