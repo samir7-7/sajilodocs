@@ -88,7 +88,7 @@ export default function SignupPage({ onSwitchToLogin }) {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4">
+            <div className="bg-[#1D9621] p-3 rounded-xl mb-4">
               <FileText className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
@@ -279,7 +279,7 @@ export default function SignupPage({ onSwitchToLogin }) {
               className={`w-full py-3 rounded-lg font-medium transform hover:scale-[1.02] transition-all shadow-lg hover:shadow-xl ${
                 loading
                   ? "bg-blue-400 text-white cursor-wait"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-[#1D9621] text-white hover:bg-[#178a1c]"
               }`}
             >
               {loading ? "Creating account..." : "Create Account"}
