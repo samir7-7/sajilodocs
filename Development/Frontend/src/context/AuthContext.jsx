@@ -64,12 +64,9 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (formData) => {
     try {
-      // Register user
       await authAPI.register(formData);
-
       // Auto-login after signup
-      const loginResult = await login(formData.email, formData.password);
-      return loginResult;
+      return await login(formData.email, formData.password);
     } catch (error) {
       console.error('Signup error:', error);
       return { 

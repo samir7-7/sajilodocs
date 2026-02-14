@@ -61,15 +61,16 @@ api.interceptors.response.use(
 // API endpoints
 export const authAPI = {
   register: (data) => api.post('/auth/register/', {
-    username: data.email.split('@')[0], // Use email prefix as username
+    username: data.email, // Use full email as username for uniqueness
     email: data.email,
     password: data.password,
     first_name: data.name.split(' ')[0] || '',
     last_name: data.name.split(' ').slice(1).join(' ') || '',
+    phone_number: data.contact || '',
   }),
   
   login: (email, password) => api.post('/auth/login/', {
-    username: email.split('@')[0],
+    username: email, // Use full email as username
     password,
   }),
   
@@ -94,6 +95,9 @@ export const fileAPI = {
   get: (id) => api.get(`/files/${id}/`),
   update: (id, data) => api.patch(`/files/${id}/`, data),
   delete: (id) => api.delete(`/files/${id}/`),
+  lock: (id) => api.post(`/files/${id}/lock/`),
+  unlock: (id) => api.post(`/files/${id}/unlock/`),
+  saveContent: (id, content) => api.post(`/files/${id}/save_content/`, { content }),
 };
 
 export const shareAPI = {

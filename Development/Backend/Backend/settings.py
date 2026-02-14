@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-%74yi8*w7s*9)t&en_$@w&ajw=4x2wqp2($@*^)na^jw(+rd7v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -190,3 +190,12 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Email Backend for Development (Console)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 1025
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'SajiloDocs <noreply@sajilodocs.com>'

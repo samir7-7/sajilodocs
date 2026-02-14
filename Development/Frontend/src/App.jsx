@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FileSystemProvider } from './context/FileSystemContext';
+import { ToastProvider } from './components/common/Toast'; // New import
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Dashboard from './pages/Dashboard';
@@ -12,24 +13,30 @@ import FolderView from './pages/FolderView'; // New import
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  console.log("ProtectedRoute: auth state:", { isAuthenticated, isLoading, user });
 
   if (isLoading) {
+    console.log("ProtectedRoute: rendering loading state...");
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   if (!isAuthenticated) {
+    console.log("ProtectedRoute: not authenticated, redirecting...");
     return <Navigate to="/login" />;
   }
 
+  console.log("ProtectedRoute: authenticated, rendering children...");
   return children;
 };
 
 function App() {
+  console.log("App: rendering...");
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+      <ToastProvider>
+        <Router>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
@@ -57,6 +64,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

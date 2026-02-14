@@ -4,72 +4,68 @@ import { Folder, MoreVertical, Trash2, Edit2 } from 'lucide-react';
 
 
 import { useFileSystem } from '../../context/FileSystemContext';
+import { cn } from '../../utils/cn';
 
-const FolderCard = ({ folder, onEdit, onDelete }) => {
+const FolderCard = ({ folder, onEdit, onDelete, onContextMenu }) => {
   const navigate = useNavigate();
   const { files } = useFileSystem();
   
-  const fileCount = files.filter(f => String(f.folder) === String(folder.id)).length;
+  if (!folder) return null;
 
-  const handleClick = () => navigate(`/dashboard/folder/${folder.id}`);
+  const fileCount = (files || []).filter(f => f && String(f.folder) === String(folder.id)).length;
+
+  const safeDate = (dateString) => {
+    if (!dateString) return '—';
+    const d = new Date(dateString);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  };
+
+  const handleClick = () => folder.id && navigate(`/dashboard/folder/${folder.id}`);
+
+  const handleContextMenu = (e) => {
+    if (onContextMenu) {
+      onContextMenu(e, folder);
+    }
+  };
+
   return (
-    <div
-      className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-shadow cursor-pointer group relative"
+    <div 
+      className={cn(
+        "group relative bg-white border border-slate-200 rounded-xl p-5 hover:border-[#0061FF] hover:shadow-md transition-all duration-200 cursor-pointer",
+      )}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
     >
-      <div className="flex justify-between items-start mb-4">
-        <div
-          className="h-10 w-10 rounded-lg flex items-center justify-center text-white"
-          style={{ backgroundColor: folder.color }}
-        >
-          <Folder size={20} fill="currentColor" className="opacity-90" />
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 bg-blue-50 text-[#0061FF] rounded-lg group-hover:bg-[#0061FF] group-hover:text-white transition-colors duration-200">
+          <Folder size={24} fill="currentColor" fillOpacity={0.1} />
         </div>
-        <div className="relative">
-          <button
-            className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <MoreVertical size={16} />
-          </button>
+      </div>
 
-          {/* Quick Actions (Visible on hover for now for simplicity) */}
-          <div className="absolute right-0 top-8 bg-white shadow-lg rounded-lg border border-gray-100 py-1 w-32 hidden group-hover:block z-10">
-            <button
-              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-              onClick={(e) => { e.stopPropagation(); onEdit(folder); }}
-            >
-              <Edit2 size={14} /> Rename
-            </button>
-            <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-              onClick={(e) => { e.stopPropagation(); onDelete(folder.id); }}
-            >
-              <Trash2 size={14} /> Delete
-            </button>
+      <div>
+        <h3 className="text-base font-bold text-slate-900 truncate mb-1.5" title={folder.name || 'Unnamed Folder'}>
+          {folder.name || 'Unnamed Folder'}
+        </h3>
+        <div className="space-y-1">
+          <p className="text-xs text-slate-500 font-bold">
+            {fileCount} {fileCount === 1 ? 'file' : 'files'}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-slate-400 font-medium">Uploaded: {safeDate(folder.created_at || folder.createdAt)}</span>
+            <span className="text-[10px] text-slate-500 font-bold">Modified: {safeDate(folder.updated_at || folder.updatedAt || folder.created_at || folder.createdAt)}</span>
           </div>
         </div>
       </div>
 
-      <h3 className="font-semibold text-gray-900 truncate mb-1" title={folder.name}>
-        {folder.name}
-      </h3>
-
-      <div className="flex flex-wrap gap-1 mt-2">
-        {folder.tags && folder.tags.map((tag, index) => (
-          <span
-            key={index}
-            className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-3 text-xs text-gray-500">
-        {fileCount} {fileCount === 1 ? 'file' : 'files'}
-      </div>
+      {folder.tags && folder.tags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {folder.tags.map((tag, i) => (
+            <span key={i} className="px-2 py-0.5 bg-slate-50 text-slate-500 border border-slate-100 rounded text-[10px] font-bold uppercase tracking-wider">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -62,37 +62,37 @@ const Profile = () => {
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Profile Settings</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-8 tracking-tight">Profile Settings</h1>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-10">
+            <form onSubmit={handleSubmit} className="space-y-10">
               {/* Avatar Section */}
-              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-8">
                 <div className="relative group">
-                  <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-100 ring-4 ring-white shadow-sm">
+                  <div className="h-28 w-28 rounded-full overflow-hidden bg-slate-50 ring-4 ring-white shadow-md transition-all duration-300 group-hover:ring-blue-50">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-gray-400">
-                        <User size={40} />
+                      <div className="h-full w-full flex items-center justify-center text-slate-300">
+                        <User size={48} />
                       </div>
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 p-1.5 bg-[#1D9621] text-white rounded-full cursor-pointer hover:bg-[#178a1c] transition-colors shadow-sm">
-                    <Camera size={14} />
+                  <label className="absolute bottom-1 right-1 p-2 bg-[#0061FF] text-white rounded-full cursor-pointer hover:bg-[#0052D9] transition-all shadow-lg hover:scale-110">
+                    <Camera size={16} />
                     <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
                   </label>
                 </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-lg font-medium text-gray-900">Profile Picture</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Upload a new avatar. Recommended size: 400x400px.
+                <div className="flex-1 text-center sm:text-left pt-2">
+                  <h3 className="text-xl font-bold text-slate-900">Profile Picture</h3>
+                  <p className="text-sm text-slate-500 mt-1 font-medium">
+                    Upload a high-quality avatar for your workspace.
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-6">
+              <div className="grid gap-8">
                 <Input
                   label="Full Name"
                   name="name"
@@ -105,36 +105,39 @@ const Profile = () => {
                   label="Email Address"
                   value={formData.email}
                   disabled
-                  className="bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="bg-slate-50 text-slate-400 cursor-not-allowed border-slate-100"
                 />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-900 ml-1">
                     Bio
                   </label>
                   <textarea
                     name="bio"
                     rows={4}
-                    className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="flex w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-[#0061FF] transition-all"
                     placeholder="Tell us a little about yourself..."
                     value={formData.bio}
                     onChange={handleChange}
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="ml-1 text-[11px] text-slate-400 font-medium">
                     Brief description for your profile.
                   </p>
                 </div>
               </div>
 
               {message.text && (
-                <div className={`p-4 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <div className={cn(
+                  "p-4 rounded-xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2",
+                  message.type === 'success' ? 'bg-blue-50 text-[#0061FF] border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'
+                )}>
                   {message.text}
                 </div>
               )}
 
-              <div className="flex justify-end pt-4 border-t border-gray-100">
-                <Button type="submit" isLoading={isSaving} className="gap-2">
-                  <Save size={18} />
+              <div className="flex justify-end pt-6 border-t border-slate-50">
+                <Button type="submit" isLoading={isSaving} className="h-12 px-8 rounded-xl font-bold shadow-blue-500/20">
+                  <Save size={18} className="mr-2" />
                   Save Changes
                 </Button>
               </div>

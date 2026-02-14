@@ -20,7 +20,7 @@ const Checkbox = React.forwardRef(({ className, label, id, ...props }, ref) => {
         {...props}
       />
       {label && (
-        <label htmlFor={id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 select-none">
+        <label htmlFor={id} className="text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-400 select-none cursor-pointer">
           {label}
         </label>
       )}

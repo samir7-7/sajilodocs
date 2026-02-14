@@ -51,75 +51,58 @@ const Signup = () => {
   return (
     <AuthLayout
       title="Create Account"
-      subtitle="Start managing your documents securely."
+      subtitle="Join thousands of professionals securing their assets."
     >
       <form className="space-y-6" onSubmit={handleSubmit}>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full flex justify-center items-center gap-2 py-6"
-          onClick={() => alert("Google Signup Mock")}
-        >
-          <img
-            src="https://th.bing.com/th/id/R.0fa3fe04edf6c0202970f2088edea9e7?rik=joOK76LOMJlBPw&riu=http%3a%2f%2fpluspng.com%2fimg-png%2fgoogle-logo-png-open-2000.png&ehk=0PJJlqaIxYmJ9eOIp9mYVPA4KwkGo5Zob552JPltDMw%3d&risl=&pid=ImgRaw&r=0"
-            alt=""
-            width={25}
-          />
-          Sign up with Google
-        </Button>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">or</span>
-          </div>
-        </div>
-
         <div className="space-y-4">
           <Input
             label="Full Name"
             name="name"
+            placeholder="John Doe"
             value={formData.name}
             onChange={handleChange}
             required
-            className="bg-gray-50 border-gray-200 focus:bg-white"
+            className="group-hover:border-white/20"
           />
 
-          <Input
-            label="Contact Number"
-            name="contact"
-            type="tel"
-            value={formData.contact}
-            onChange={handleChange}
-            required
-            className="bg-gray-50 border-gray-200 focus:bg-white"
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Contact"
+              name="contact"
+              type="tel"
+              placeholder="+977"
+              value={formData.contact}
+              onChange={handleChange}
+              required
+              className="group-hover:border-white/20"
+            />
 
-          <Input
-            label="Email address"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="bg-gray-50 border-gray-200 focus:bg-white"
-          />
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="john@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="group-hover:border-white/20"
+            />
+          </div>
 
           <div className="relative">
             <Input
-              label="Password"
+              label="Create Password"
               name="password"
               type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
               required
-              className="bg-gray-50 border-gray-200 focus:bg-white"
+              className="group-hover:border-white/20"
             />
             <button
               type="button"
-              className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-[42px] text-slate-500 hover:text-slate-300 transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -130,47 +113,55 @@ const Signup = () => {
             label="Confirm Password"
             name="confirmPassword"
             type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
             value={formData.confirmPassword}
             onChange={handleChange}
             required
-            className="bg-gray-50 border-gray-200 focus:bg-white"
+            className="group-hover:border-white/20"
           />
         </div>
 
-        <Checkbox
-          id="terms"
-          label={
-            <span>
-              I agree to the{" "}
-              <a href="#" className="text-blue-600 hover:underline">
-                Terms and Conditions
-              </a>
-            </span>
-          }
-          checked={agreeTerms}
-          onChange={(e) => setAgreeTerms(e.target.checked)}
-        />
+        <div className="flex items-center">
+          <Checkbox
+            id="terms"
+            label={
+              <span className="text-slate-400 text-xs">
+                I agree to the{" "}
+                <Link to="/terms" className="text-blue-400 hover:text-blue-300 font-bold hover:underline">
+                  Terms & Privacy Policy
+                </Link>
+              </span>
+            }
+            checked={agreeTerms}
+            onChange={(e) => setAgreeTerms(e.target.checked)}
+            className="border-white/10 bg-white/5"
+          />
+        </div>
 
         {error && (
-          <div className="text-red-500 text-sm text-center">{error}</div>
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center font-medium">
+            {error}
+          </div>
         )}
 
         <Button
           type="submit"
-          className="w-full py-6 text-base"
+          className="w-full py-7 text-base font-bold bg-[#0061FF] hover:bg-[#0052D9] border-none shadow-xl shadow-blue-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           isLoading={isLoading}
         >
-          Create Account
+          Create Premium Account
         </Button>
 
-        <div className="text-center text-sm text-gray-500">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="font-medium text-blue-600 hover:text-blue-500"
-          >
-            Sign in
-          </Link>
+        <div className="text-center pt-2">
+          <p className="text-slate-400 text-sm font-medium">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-blue-400 hover:text-blue-300 font-bold transition-colors underline-offset-4 hover:underline"
+            >
+              Sign back in
+            </Link>
+          </p>
         </div>
       </form>
     </AuthLayout>

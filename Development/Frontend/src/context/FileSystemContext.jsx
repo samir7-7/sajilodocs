@@ -19,15 +19,29 @@ export const FileSystemProvider = ({ children }) => {
   // Fetch data from backend
   useEffect(() => {
     const fetchData = async () => {
+      console.log('FileSystemContext: Starting data fetch...');
       try {
         const [foldersRes, filesRes] = await Promise.all([
           folderAPI.list(),
           fileAPI.list(),
         ]);
-        setFolders(foldersRes.data);
-        setFiles(filesRes.data);
+        
+        console.log('FileSystemContext: Folders fetched:', foldersRes.data);
+        console.log('FileSystemContext: Files fetched:', filesRes.data);
+        
+        const allFiles = filesRes.data || [];
+        const foldersList = foldersRes.data || [];
+        
+        // Categorize files based on RBAC 'role'
+        // 'OWNER' -> My Files
+        // 'EDITOR' or 'VIEW' -> Shared With Me
+        const myFiles = allFiles.filter(f => f.role === 'OWNER');
+        const sharedFilesList = allFiles.filter(f => f.role === 'EDITOR' || f.role === 'VIEW');
+        
+        setFolders(foldersList);
+        setFiles(allFiles); // Keep files as all for now, but we'll add getters for categories
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('FileSystemContext: Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -41,13 +55,13 @@ export const FileSystemProvider = ({ children }) => {
       const response = await folderAPI.create({
         name: folderData.name,
         color: folderData.color,
-        parent: null, // For now, all folders are root level
+        parent: null,
         tags: folderData.tags || [],
       });
       setFolders([...folders, response.data]);
       return { success: true };
     } catch (error) {
-      console.error('Error creating folder:', error);
+      console.error('Error creating folder:', error.response?.data || error.message);
       return { success: false, error: 'Failed to create folder' };
     }
   };
@@ -125,6 +139,8 @@ export const FileSystemProvider = ({ children }) => {
   const value = {
     folders,
     files,
+    myFiles: files.filter(f => f.role === 'OWNER'),
+    sharedFiles: files.filter(f => f.role === 'EDITOR' || f.role === 'VIEW'),
     isLoading,
     createFolder,
     deleteFolder,

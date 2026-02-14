@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Input } from '../common/Input';
+import { cn } from '../../utils/cn';
 import { Button } from '../common/Button';
 
 const COLORS = [
-  '#3B82F6', // Blue
+  '#0061FF', // Dropbox Blue
   '#EF4444', // Red
   '#10B981', // Green
   '#F59E0B', // Yellow
@@ -31,58 +32,78 @@ const CreateFolderModal = ({ isOpen, onClose, onCreate }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-        <button 
-          onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
-        >
-          <X size={20} />
-        </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all">
+      <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Create Folder</h2>
+          <button 
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
         
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Create New Folder</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-8">
           <Input
             label="Folder Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Project Alpha"
+            placeholder="e.g. Legal Documents"
             required
             autoFocus
+            className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
           />
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Color Label
+          <div className="space-y-4">
+            <label className="block text-sm font-bold text-slate-900 ml-1">
+              Label Color
             </label>
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-4 flex-wrap">
               {COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  className={`w-8 h-8 rounded-full transition-transform ${
-                    selectedColor === color ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'
-                  }`}
+                  className={cn(
+                    "w-9 h-9 rounded-full transition-all duration-300 relative group",
+                    selectedColor === color ? "ring-4 ring-offset-2 ring-[#0061FF] scale-110" : "hover:scale-105"
+                  )}
                   style={{ backgroundColor: color }}
                   onClick={() => setSelectedColor(color)}
-                />
+                >
+                   {selectedColor === color && (
+                     <div className="absolute inset-0 flex items-center justify-center text-white">
+                        <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 5L5 9L13 1" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                     </div>
+                   )}
+                </button>
               ))}
             </div>
           </div>
           
           <Input
-            label="Tags (comma separated)"
+            label="Tags (Optional)"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            placeholder="Work, Important, 2024"
+            placeholder="Work, Tax, 2026..."
+            className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
           />
           
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex items-center gap-4 pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex-1 h-12 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold transition-all"
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit">
+            <Button 
+              type="submit"
+              className="flex-1 h-12 bg-[#0061FF] hover:bg-[#0052D9] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all"
+            >
               Create Folder
             </Button>
           </div>
