@@ -47,7 +47,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, items, item, type }) => {
           onClick={() => { items.onOpen && items.onOpen(item); onClose(); }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0061FF] transition-all group"
         >
-          <ExternalLink size={16} className="text-slate-400 group-hover:text-[#0061FF]" />
+          <ExternalLink size={16} className="text-slate-400 group-hover:text-[#4f46e5]" />
           Open
         </button>
 
@@ -59,7 +59,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, items, item, type }) => {
             canManage ? "text-slate-700 hover:bg-slate-50 hover:text-[#0061FF]" : "text-slate-300 cursor-not-allowed opacity-50"
           )}
         >
-          <Share2 size={16} className={cn("text-slate-400", canManage && "group-hover:text-[#0061FF]")} />
+          <Share2 size={16} className={cn("text-slate-400", canManage && "group-hover:text-[#4f46e5]")} />
           Give Access
         </button>
 
@@ -71,7 +71,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, items, item, type }) => {
             canManage ? "text-slate-700 hover:bg-slate-50 hover:text-[#0061FF]" : "text-slate-300 cursor-not-allowed opacity-50"
           )}
         >
-          <Edit2 size={16} className={cn("text-slate-400", canManage && "group-hover:text-[#0061FF]")} />
+          <Edit2 size={16} className={cn("text-slate-400", canManage && "group-hover:text-[#4f46e5]")} />
           Rename
         </button>
 
@@ -80,7 +80,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, items, item, type }) => {
             onClick={() => { items.onDownload(item); onClose(); }}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#0061FF] transition-all group"
           >
-            <Download size={16} className="text-slate-400 group-hover:text-[#0061FF]" />
+            <Download size={16} className="text-slate-400 group-hover:text-[#4f46e5]" />
             Download
           </button>
         )}

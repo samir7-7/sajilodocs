@@ -58,7 +58,7 @@ const Login = () => {
               </label>
               <Link
                 to="/forgot-password"
-                className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
               >
                 Forgot Password?
               </Link>
@@ -101,7 +101,7 @@ const Login = () => {
 
         <Button
           type="submit"
-          className="w-full py-7 text-base font-bold bg-[#0061FF] hover:bg-[#0052D9] border-none shadow-xl shadow-blue-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full py-7 text-base font-bold bg-[#4f46e5] hover:bg-[#4338ca] border-none shadow-xl shadow-indigo-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           isLoading={isLoading}
         >
           Sign In to Dashboard
@@ -120,7 +120,7 @@ const Login = () => {
           type="button"
           variant="outline"
           className="w-full flex justify-center items-center gap-3 py-6 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all duration-300"
-          onClick={() => alert("Google Login Mock")}
+          onClick={() => showToast("Google Login is not yet configured for this environment.", "info")}
         >
           <img
             src="https://th.bing.com/th/id/R.0fa3fe04edf6c0202970f2088edea9e7?rik=joOK76LOMJlBPw&riu=http%3a%2f%2fpluspng.com%2fimg-png%2fgoogle-logo-png-open-2000.png&ehk=0PJJlqaIxYmJ9eOIp9mYVPA4KwkGo5Zob552JPltDMw%3d&risl=&pid=ImgRaw&r=0"
@@ -135,7 +135,7 @@ const Login = () => {
             New here?{" "}
             <Link
               to="/signup"
-              className="text-blue-400 hover:text-blue-300 font-bold transition-colors underline-offset-4 hover:underline"
+              className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors underline-offset-4 hover:underline"
             >
               Create a premium account
             </Link>

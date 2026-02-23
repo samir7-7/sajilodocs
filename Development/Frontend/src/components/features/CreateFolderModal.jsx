@@ -5,7 +5,7 @@ import { cn } from '../../utils/cn';
 import { Button } from '../common/Button';
 
 const COLORS = [
-  '#0061FF', // Dropbox Blue
+  '#4f46e5', // Premium Indigo
   '#EF4444', // Red
   '#10B981', // Green
   '#F59E0B', // Yellow
@@ -52,7 +52,7 @@ const CreateFolderModal = ({ isOpen, onClose, onCreate }) => {
             placeholder="e.g. Legal Documents"
             required
             autoFocus
-            className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
+            className="h-12 border-slate-200 focus:border-[#4f46e5] focus:ring-4 focus:ring-indigo-500/5 rounded-xl transition-all"
           />
           
           <div className="space-y-4">
@@ -66,7 +66,7 @@ const CreateFolderModal = ({ isOpen, onClose, onCreate }) => {
                   type="button"
                   className={cn(
                     "w-9 h-9 rounded-full transition-all duration-300 relative group",
-                    selectedColor === color ? "ring-4 ring-offset-2 ring-[#0061FF] scale-110" : "hover:scale-105"
+                    selectedColor === color ? "ring-4 ring-offset-2 ring-[#4f46e5] scale-110" : "hover:scale-105"
                   )}
                   style={{ backgroundColor: color }}
                   onClick={() => setSelectedColor(color)}
@@ -88,7 +88,7 @@ const CreateFolderModal = ({ isOpen, onClose, onCreate }) => {
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="Work, Tax, 2026..."
-            className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
+            className="h-12 border-slate-200 focus:border-[#4f46e5] focus:ring-4 focus:ring-indigo-500/5 rounded-xl transition-all"
           />
           
           <div className="flex items-center gap-4 pt-2">
@@ -102,7 +102,7 @@ const CreateFolderModal = ({ isOpen, onClose, onCreate }) => {
             </Button>
             <Button 
               type="submit"
-              className="flex-1 h-12 bg-[#0061FF] hover:bg-[#0052D9] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all"
+              className="flex-1 h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all"
             >
               Create Folder
             </Button>

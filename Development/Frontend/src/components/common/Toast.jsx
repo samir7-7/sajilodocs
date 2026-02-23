@@ -44,7 +44,7 @@ const ToastItem = ({ toast, onRemove }) => {
   const icons = {
     success: <CheckCircle2 className="text-emerald-500" size={20} />,
     error: <AlertCircle className="text-rose-500" size={20} />,
-    info: <Info className="text-[#0061FF]" size={20} />,
+    info: <Info className="text-[#4f46e5]" size={20} />,
   };
 
   const bgColors = {

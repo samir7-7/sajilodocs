@@ -134,8 +134,8 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('id', 'name', 'file', 'size', 'type', 'folder', 'owner', 'owner_details', 'description', 'tags', 'metadata', 'created_at', 'updated_at', 'status', 'role', 'file_url', 'shares', 'locked_by', 'locked_at', 'locked_by_details')
-        read_only_fields = ('id', 'owner', 'created_at', 'updated_at', 'size', 'type', 'role', 'locked_by', 'locked_at')
+        fields = ('id', 'name', 'file', 'size', 'type', 'folder', 'owner', 'owner_details', 'description', 'tags', 'metadata', 'created_at', 'updated_at', 'status', 'role', 'file_url', 'shares', 'locked_by', 'locked_at', 'locked_by_details', 'ocr_text', 'ocr_status', 'ocr_extracted_at')
+        read_only_fields = ('id', 'owner', 'created_at', 'updated_at', 'size', 'type', 'role', 'locked_by', 'locked_at', 'ocr_text', 'ocr_status', 'ocr_extracted_at')
 
     def get_role(self, obj):
         request = self.context.get('request')

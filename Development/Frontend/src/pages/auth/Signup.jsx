@@ -127,7 +127,7 @@ const Signup = () => {
             label={
               <span className="text-slate-400 text-xs">
                 I agree to the{" "}
-                <Link to="/terms" className="text-blue-400 hover:text-blue-300 font-bold hover:underline">
+                <Link to="/terms" className="text-indigo-400 hover:text-indigo-300 font-bold hover:underline">
                   Terms & Privacy Policy
                 </Link>
               </span>
@@ -146,7 +146,7 @@ const Signup = () => {
 
         <Button
           type="submit"
-          className="w-full py-7 text-base font-bold bg-[#0061FF] hover:bg-[#0052D9] border-none shadow-xl shadow-blue-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full py-7 text-base font-bold bg-[#4f46e5] hover:bg-[#4338ca] border-none shadow-xl shadow-indigo-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           isLoading={isLoading}
         >
           Create Premium Account
@@ -157,7 +157,7 @@ const Signup = () => {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-blue-400 hover:text-blue-300 font-bold transition-colors underline-offset-4 hover:underline"
+              className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors underline-offset-4 hover:underline"
             >
               Sign back in
             </Link>

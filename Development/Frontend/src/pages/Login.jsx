@@ -8,11 +8,13 @@ export default function LoginPage({ onSwitchToSignup }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
 
     // Adjust backend base URL if needed
     const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
@@ -28,7 +30,7 @@ export default function LoginPage({ onSwitchToSignup }) {
 
       if (!res.ok) {
         const msg = data.error || data.detail || "Login failed";
-        alert(msg);
+        setError(msg);
         return;
       }
 
@@ -41,7 +43,7 @@ export default function LoginPage({ onSwitchToSignup }) {
       navigate("/");
     } catch (err) {
       console.error(err);
-      alert("Network error during login");
+      setError("Network error during login. Please try again later.");
     }
   };
 
@@ -130,6 +132,12 @@ export default function LoginPage({ onSwitchToSignup }) {
                 Forgot password?
               </button>
             </div>
+
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm text-center font-medium">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"

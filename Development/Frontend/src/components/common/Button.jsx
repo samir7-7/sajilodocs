@@ -14,7 +14,7 @@ const Button = React.forwardRef(
     ref
   ) => {
     const variants = {
-      primary: "bg-[#0061FF] text-white hover:bg-[#0052D9] shadow-lg shadow-blue-500/20",
+      primary: "bg-[#4f46e5] text-white hover:bg-[#4338ca] shadow-lg shadow-indigo-500/20",
       secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
       outline:
         "border border-slate-200 bg-transparent hover:bg-slate-50 text-slate-600",
@@ -32,7 +32,7 @@ const Button = React.forwardRef(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+          "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
           variants[variant],
           sizes[size],
           className

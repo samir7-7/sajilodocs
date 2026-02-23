@@ -72,8 +72,8 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
             className={cn(
               "group border-2 border-dashed rounded-[20px] p-12 text-center cursor-pointer transition-all duration-300 relative overflow-hidden",
               file 
-                ? "border-[#0061FF] bg-blue-50/30" 
-                : "border-slate-200 hover:border-[#0061FF] hover:bg-slate-50/50"
+                ? "border-[#4f46e5] bg-indigo-50/30" 
+                : "border-slate-200 hover:border-[#4f46e5] hover:bg-slate-50/50"
             )}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -86,16 +86,16 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
             
             {file ? (
               <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
-                <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-blue-100">
-                   <File size={32} className="text-[#0061FF]" />
+                <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-indigo-100">
+                   <File size={32} className="text-[#4f46e5]" />
                 </div>
                 <span className="font-bold text-slate-900 mb-1">{file.name}</span>
                 <span className="text-sm text-slate-400 font-medium">{(file.size / 1024).toFixed(1)} KB</span>
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-slate-100 group-hover:border-[#0061FF]/30 transition-colors">
-                   <Upload size={32} className="text-slate-300 group-hover:text-[#0061FF] transition-colors" />
+                <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-slate-100 group-hover:border-[#4f46e5]/30 transition-colors">
+                   <Upload size={32} className="text-slate-300 group-hover:text-[#4f46e5] transition-colors" />
                 </div>
                 <span className="font-bold text-slate-900 mb-1">Select a file to upload</span>
                 <span className="text-sm text-slate-400 font-medium">or drag and drop here</span>
@@ -110,7 +110,7 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
               value={metadata.author}
               onChange={handleMetadataChange}
               placeholder="Who created this?"
-              className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
+              className="h-12 border-slate-200 focus:border-[#4f46e5] focus:ring-4 focus:ring-indigo-500/5 rounded-xl transition-all"
             />
             <Input
               label="Category"
@@ -118,7 +118,7 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
               value={metadata.category}
               onChange={handleMetadataChange}
               placeholder="Finance, Marketing..."
-              className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
+              className="h-12 border-slate-200 focus:border-[#4f46e5] focus:ring-4 focus:ring-indigo-500/5 rounded-xl transition-all"
             />
           </div>
 
@@ -128,7 +128,7 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
             value={metadata.tags}
             onChange={handleMetadataChange}
             placeholder="Separate with commas..."
-            className="h-12 border-slate-200 focus:border-[#0061FF] focus:ring-4 focus:ring-blue-500/5 rounded-xl transition-all"
+            className="h-12 border-slate-200 focus:border-[#4f46e5] focus:ring-4 focus:ring-indigo-500/5 rounded-xl transition-all"
           />
 
           <div className="space-y-2">
@@ -138,7 +138,7 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
             <textarea
               name="description"
               rows={3}
-              className="flex w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-[#0061FF] transition-all"
+              className="flex w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-[#4f46e5] transition-all"
               placeholder="Briefly describe this document..."
               value={metadata.description}
               onChange={handleMetadataChange}
@@ -157,7 +157,7 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
             <Button 
               type="submit" 
               disabled={!file}
-              className="flex-1 h-12 bg-[#0061FF] hover:bg-[#0052D9] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:shadow-none"
+              className="flex-1 h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:shadow-none"
             >
               Start Upload
             </Button>

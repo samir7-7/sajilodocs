@@ -53,7 +53,7 @@ const Sidebar = () => {
         {/* Logo */}
         <div className="p-8">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 bg-[#0061FF] rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="h-9 w-9 bg-[#4f46e5] rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
@@ -73,7 +73,7 @@ const Sidebar = () => {
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-[#F7F9FC] text-[#0061FF]"
+                  ? "bg-[#f5f3ff] text-[#4f46e5]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               )}
             >

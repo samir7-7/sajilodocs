@@ -148,6 +148,7 @@ export const FileSystemProvider = ({ children }) => {
     uploadFile,
     deleteFile,
     updateFile,
+    setFiles,
   };
 
   return (

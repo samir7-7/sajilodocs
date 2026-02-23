@@ -48,7 +48,20 @@ class File(models.Model):
         DELETED = 'DELETED', 'Deleted'
         ARCHIVED = 'ARCHIVED', 'Archived'
 
+    class OCRStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        PROCESSING = 'PROCESSING', 'Processing'
+        COMPLETED = 'COMPLETED', 'Completed'
+        FAILED = 'FAILED', 'Failed'
+
     status = models.CharField(max_length=10, choices=FileStatus.choices, default=FileStatus.ACTIVE)
+    ocr_text = models.TextField(blank=True, null=True)
+    ocr_status = models.CharField(
+        max_length=20, 
+        choices=OCRStatus.choices, 
+        default=OCRStatus.PENDING
+    )
+    ocr_extracted_at = models.DateTimeField(null=True, blank=True)
     locked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='locked_files')
     locked_at = models.DateTimeField(null=True, blank=True)
     is_notarized = models.BooleanField(default=False)
@@ -83,6 +96,9 @@ class NotificationType(models.TextChoices):
     EXPIRY = 'EXPIRY', 'Expiry Reminder'
     SHARE = 'SHARE', 'Document Shared'
     SYSTEM = 'SYSTEM', 'System Alert'
+    SUCCESS = 'SUCCESS', 'Success'
+    ERROR = 'ERROR', 'Error'
+    INFO = 'INFO', 'Information'
 
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

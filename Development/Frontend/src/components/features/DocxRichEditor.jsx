@@ -5,11 +5,11 @@ import mammoth from 'mammoth';
 import { useAuth } from '../../context/AuthContext';
 import { fileAPI } from '../../utils/api';
 import { useToast } from '../common/Toast';
-import { Lock, Unlock, Loader2, Save, FileText, AlertCircle, Maximize2, Minimize2, ChevronDown } from 'lucide-react';
+import { Lock, Unlock, Loader2, Save, FileText, AlertCircle, Maximize2, Minimize2, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { cn } from '../../utils/cn';
 
-const DocxRichEditor = ({ file, readOnly = false }) => {
+const DocxRichEditor = React.forwardRef(({ file, readOnly = false, zoom = 100 }, ref) => {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -18,6 +18,12 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
   
+  // Expose handleSave to parent
+  React.useImperativeHandle(ref, () => ({
+    save: handleSave,
+    isSaving
+  }));
+
   // CRITICAL FIX: Use user.id instead of user.pk
   const isOwner = file?.owner === user?.id;
   const isLockedByOthers = file?.locked_by && file?.locked_by !== user?.id;
@@ -29,7 +35,13 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
       
       setIsLoading(true);
       try {
-        const response = await fetch(file.file_url);
+        // Add cache buster to ensure we get the latest content after a save
+        const cacheBuster = `t=${new Date().getTime()}`;
+        const urlWithBuster = file.file_url.includes('?') 
+            ? `${file.file_url}&${cacheBuster}` 
+            : `${file.file_url}?${cacheBuster}`;
+        
+        const response = await fetch(urlWithBuster);
         const arrayBuffer = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
         setContent(result.value);
@@ -91,29 +103,19 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
   }
 
   const modules = {
-    toolbar: [
-        [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'script': 'sub' }, { 'script': 'super' }],
-        [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block'],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-        [{ 'direction': 'rtl' }, { 'align': [] }],
-        ['link', 'image', 'video'],
-        ['clean']
-    ],
+    toolbar: '#toolbar',
   };
 
   return (
     <div className={cn(
-        "flex flex-col h-full bg-[#f8f9fa] transition-all duration-300",
+        "flex flex-col h-full bg-[#f3f4f6] transition-all duration-300",
         isFullscreen && "fixed inset-0 z-[100] h-screen w-screen"
     )}>
-      {/* Premium Microsoft Word-inspired Ribbon/Header */}
-      <div className="flex flex-col bg-white border-b border-slate-200 shadow-sm z-20">
+      {/* Premium Microsoft Word-inspired Ribbon/Header - FIXED at top of flex container */}
+      <div className="flex flex-col bg-white border-b border-slate-200 shadow-sm z-30 relative shrink-0">
         <div className="flex items-center justify-between px-6 py-2.5 bg-white">
             <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-blue-600 rounded shadow-sm">
+                <div className="p-1.5 bg-[#4f46e5] rounded shadow-sm">
                     <FileText className="text-white" size={18} />
                 </div>
                 <div className="flex flex-col">
@@ -122,9 +124,16 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
                             {file.name}
                         </span>
                         <div className="h-4 w-px bg-slate-200" />
-                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                            Saved to Cloud
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                            {isSaving ? (
+                                <Loader2 className="animate-spin text-slate-400" size={10} />
+                            ) : (
+                                <CheckCircle2 className="text-emerald-500" size={10} />
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                {isSaving ? 'Syncing...' : 'Cloud Synced'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -150,14 +159,14 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
                                 onClick={handleUnlock} 
                                 className="h-8 px-3 gap-1.5 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 font-medium"
                             >
-                                <Unlock size={14} /> Finish
+                                <Unlock size={14} /> Finish Editing
                             </Button>
                         ) : !file.locked_by ? (
                             <Button 
                                 variant="primary" 
                                 size="sm" 
                                 onClick={handleLock} 
-                                className="h-8 px-3 gap-1.5 bg-blue-600 hover:bg-blue-700 shadow-sm font-medium"
+                                className="h-8 px-3 gap-1.5 bg-[#4f46e5] hover:bg-[#4338ca] shadow-sm font-medium"
                             >
                                 <Lock size={14} /> Start Editing
                             </Button>
@@ -177,7 +186,7 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
                             size="sm" 
                             onClick={handleSave} 
                             disabled={isSaving || !isLockedByMe}
-                            className="h-8 px-4 gap-1.5 bg-blue-600 hover:bg-blue-700 shadow-sm font-medium disabled:opacity-50"
+                            className="h-8 px-4 gap-1.5 bg-emerald-600 hover:bg-emerald-700 shadow-sm font-medium disabled:opacity-50"
                         >
                             {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                             Save
@@ -196,7 +205,7 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
                 {isLockedByMe ? (
                     <div className="flex items-center gap-2 text-amber-600">
                         <Lock size={12} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">You have an active editing session</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Active session: Changes can be saved</span>
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 text-rose-600">
@@ -208,11 +217,78 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
                 )}
             </div>
         )}
+
+        {/* PERSISTENT TOOLBAR AREA */}
+        <div 
+          className={cn(
+            "bg-white border-t border-slate-100 transition-all duration-300 overflow-hidden",
+            (!isLockedByMe || readOnly) ? "h-0 opacity-0" : "h-auto opacity-100"
+          )}
+        >
+          <div id="toolbar" className="!border-none !bg-white px-6 py-2 flex flex-wrap items-center justify-start gap-px overflow-x-auto no-scrollbar">
+            <span className="ql-formats">
+                <select className="ql-font"></select>
+                <select className="ql-size"></select>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-bold"></button>
+                <button className="ql-italic"></button>
+                <button className="ql-underline"></button>
+                <button className="ql-strike"></button>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <select className="ql-color"></select>
+                <select className="ql-background"></select>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-script" value="sub"></button>
+                <button className="ql-script" value="super"></button>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-header" value="1"></button>
+                <button className="ql-header" value="2"></button>
+                <button className="ql-blockquote"></button>
+                <button className="ql-code-block"></button>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-list" value="ordered"></button>
+                <button className="ql-list" value="bullet"></button>
+                <button className="ql-indent" value="-1"></button>
+                <button className="ql-indent" value="+1"></button>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <select className="ql-align"></select>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-link"></button>
+                <button className="ql-image"></button>
+                <button className="ql-video"></button>
+            </span>
+            <div className="h-6 w-px bg-slate-200 mx-2 self-center" />
+            <span className="ql-formats">
+                <button className="ql-clean" title="Clear Formatting"></button>
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Word-style centered workspace */}
-      <div className="flex-1 overflow-auto custom-workspace py-10 px-4 flex justify-center">
-        <div className="a4-page relative shadow-2xl transition-all duration-300">
+      {/* Word-style centered workspace - IMPROVED Scrolling */}
+      <div className="flex-1 overflow-y-auto overflow-x-auto custom-workspace py-12 px-8 flex flex-col items-center">
+        <div 
+            className="a4-page relative shadow-2xl transition-all duration-300 mb-20 shrink-0"
+            style={{ 
+                transform: `scale(${zoom/100})`, 
+                transformOrigin: 'top center',
+                marginBottom: `${20 * (zoom/100)}px` // Adjust margin to avoid cutting off
+            }}
+        >
             {/* Virtual Ruler */}
             <div className="absolute -top-8 left-0 right-0 flex justify-between px-1 text-[9px] text-slate-300 font-medium select-none pointer-events-none uppercase tracking-tighter">
                 <span>0"</span>
@@ -240,8 +316,7 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
 
       <style jsx="true" global="true">{`
         .custom-workspace {
-            background-color: #f0f2f5;
-            perspective: 1000px;
+            background-color: #f3f4f6;
         }
 
         .a4-page {
@@ -249,50 +324,55 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
             width: 100%;
             max-width: 816px; /* A4 width */
             min-height: 1056px;
-            margin-bottom: 60px;
             display: flex;
             flex-direction: column;
-            border: 1px solid #d1d5db;
+            border: 1px solid #e5e7eb;
             border-radius: 1px;
-            transform-origin: top center;
         }
 
         .quill-editor-page {
             display: flex;
             flex-direction: column;
             flex: 1;
-            min-height: 100%;
         }
 
         .quill-editor-page .ql-container {
             border: none !important;
             flex: 1;
-            height: auto !important;
+        }
+
+        /* PERSISTENT TOOLBAR STYLES */
+        #toolbar {
+            border: none !important;
+            padding: 4px 12px !important;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            background: #ffffff !important;
         }
 
         .quill-editor-page .ql-toolbar {
-            border: none !important;
-            border-bottom: 1px solid #edf2f7 !important;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: #ffffff;
-            padding: 10px 40px !important;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 2px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: none !important; /* Hide the default one if it appears */
         }
 
         .quill-editor-page .ql-editor {
-            padding: 96px 110px !important;
+            padding: 60px 80px !important;
             font-size: 15px;
-            line-height: 1.65;
-            color: #2d3748;
-            min-height: 1000px;
+            line-height: 1.7;
+            color: #1f2937;
+            min-height: 980px;
             height: auto;
             cursor: text;
+        }
+
+        /* Mobile adjustments and better fit */
+        @media (max-width: 640px) {
+            .quill-editor-page .ql-editor {
+                padding: 40px 30px !important;
+            }
+            .quill-editor-page .ql-toolbar {
+                padding: 8px !important;
+            }
         }
 
         /* Customize Quill Controls */
@@ -301,61 +381,44 @@ const DocxRichEditor = ({ file, readOnly = false }) => {
         .ql-snow.ql-toolbar .ql-picker-label {
             border-radius: 4px;
             border: 1px solid transparent !important;
-            padding: 2px 4px;
         }
 
         .ql-snow.ql-toolbar button:hover,
         .ql-snow.ql-toolbar .ql-picker-label:hover {
-            background: #f7fafc !important;
-            border-color: #e2e8f0 !important;
-            color: #3182ce !important;
+            background: #f3f4f6 !important;
+            color: #4f46e5 !important;
         }
 
         .ql-snow.ql-toolbar button.ql-active {
-            background: #ebf8ff !important;
-            color: #3182ce !important;
-            border-color: #bee3f8 !important;
+            background: #eff6ff !important;
+            color: #4f46e5 !important;
         }
 
         .ql-snow .ql-stroke {
-            stroke: #4a5568;
+            stroke: #4b5563;
         }
         
         .ql-snow .ql-fill {
-            fill: #4a5568;
-        }
-
-        .ql-snow .ql-picker {
-            color: #4a5568;
-            font-size: 12px;
-            font-weight: 500;
+            fill: #4b5563;
         }
 
         /* Custom scrollbar for the workspace */
         .custom-workspace::-webkit-scrollbar {
-            width: 12px;
+            width: 8px;
         }
         .custom-workspace::-webkit-scrollbar-track {
-            background: #f0f2f5;
+            background: transparent;
         }
         .custom-workspace::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
+            background: #d1d5db;
             border-radius: 10px;
-            border: 3px solid #f0f2f5;
         }
         .custom-workspace::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
-        }
-
-        /* Fix for color picker alignment */
-        .ql-color .ql-picker-options, .ql-background .ql-picker-options {
-            padding: 8px !important;
-            border-radius: 8px !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            background: #9ca3af;
         }
       `}</style>
     </div>
   );
-};
+});
 
 export default DocxRichEditor;

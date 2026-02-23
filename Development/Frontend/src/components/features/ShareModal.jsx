@@ -70,7 +70,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
              <div className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100">
-                <Share2 size={24} className="text-[#0061FF]" />
+                <Share2 size={24} className="text-[#4f46e5]" />
              </div>
              <div className="min-w-0">
                 <h4 className="font-bold text-slate-900 truncate">{item.name}</h4>
@@ -86,7 +86,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 bg-slate-50/50 border-transparent focus:bg-white focus:border-[#0061FF]/20 text-sm font-medium"
+                  className="pl-10 h-12 bg-slate-50/50 border-transparent focus:bg-white focus:border-[#4f46e5]/20 text-sm font-medium"
                 />
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" />
               </div>
@@ -97,7 +97,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Access Role</label>
                 <div className="relative">
                   <select
-                    className="w-full h-12 bg-slate-50/50 border-transparent rounded-xl px-10 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#0061FF]/10 appearance-none cursor-pointer"
+                    className="w-full h-12 bg-slate-50/50 border-transparent rounded-xl px-10 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/10 appearance-none cursor-pointer"
                     value={permission}
                     onChange={(e) => setPermission(e.target.value)}
                   >
@@ -115,7 +115,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
                     type="date"
                     value={expiration}
                     onChange={(e) => setExpiration(e.target.value)}
-                    className="pl-10 h-12 bg-slate-50/50 border-transparent focus:bg-white focus:border-[#0061FF]/20 text-xs font-bold text-slate-600"
+                    className="pl-10 h-12 bg-slate-50/50 border-transparent focus:bg-white focus:border-[#4f46e5]/20 text-xs font-bold text-slate-600"
                   />
                   <Calendar size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
                 </div>
@@ -129,7 +129,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
                   placeholder="Add a message (optional)"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full rounded-2xl border border-transparent bg-slate-50/50 p-4 pl-10 text-xs text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-[#0061FF]/10 transition-all min-h-[100px] resize-none"
+                  className="w-full rounded-2xl border border-transparent bg-slate-50/50 p-4 pl-10 text-xs text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/10 transition-all min-h-[100px] resize-none"
                 />
                 <MessageSquare size={16} className="absolute left-3.5 top-5 text-slate-300" />
               </div>
@@ -139,7 +139,7 @@ const ShareModal = ({ isOpen, onClose, item, type = 'file' }) => {
 
         <div className="px-8 py-6 bg-slate-50/50 flex flex-col gap-3 border-t border-slate-50">
           <Button 
-            className="w-full h-12 gap-2.5 font-bold shadow-lg shadow-blue-500/10" 
+            className="w-full h-12 gap-2.5 font-bold shadow-lg shadow-indigo-500/10" 
             onClick={handleShare} 
             disabled={isSharing}
           >

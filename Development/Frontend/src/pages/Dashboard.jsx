@@ -13,6 +13,8 @@ import { Input } from "../components/common/Input";
 import { cn } from "../utils/cn";
 import ContextMenu from "../components/common/ContextMenu";
 import ShareModal from "../components/features/ShareModal";
+import ConfirmModal from "../components/common/ConfirmModal";
+import { useToast } from "../components/common/Toast";
 
 const Dashboard = () => {
   console.log("Dashboard rendering...");
@@ -39,6 +41,8 @@ const Dashboard = () => {
   // Context Menu & Share Modal State
   const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null, type: null });
   const [shareModal, setShareModal] = useState({ isOpen: false, item: null, type: null });
+  const [confirmData, setConfirmData] = useState({ isOpen: false, item: null, type: null, action: null });
+  const { showToast } = useToast();
 
   const handleContextMenu = (e, item, type) => {
     e.preventDefault();
@@ -60,6 +64,20 @@ const Dashboard = () => {
   };
 
   const currentFiles = activeTab === 'mine' ? myFiles : sharedFiles;
+
+  const handleConfirmAction = () => {
+    const { item, type, action } = confirmData;
+    if (!item) return;
+
+    if (action === 'delete') {
+      if (type === 'folder') deleteFolder(item.id);
+      else deleteFile(item.id);
+      showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`, 'success');
+    } else if (action === 'rename') {
+      showToast(`Rename feature for ${type} is coming soon!`, 'info');
+    }
+    setConfirmData({ ...confirmData, isOpen: false });
+  };
 
   const filteredFolders = (folders || []).filter(
     (f) =>
@@ -86,7 +104,7 @@ const Dashboard = () => {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <div className="h-10 w-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="h-10 w-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
           <p className="text-slate-400 font-medium">Preparing your workspace...</p>
         </div>
       </DashboardLayout>
@@ -99,7 +117,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
         <div>
           <nav className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">
-            <span className="hover:text-[#0061FF] cursor-pointer transition-colors">SajiloDocs</span>
+            <span className="hover:text-[#4f46e5] cursor-pointer transition-colors">SajiloDocs</span>
             <span>/</span>
             <span className="text-slate-900">Home</span>
           </nav>
@@ -110,7 +128,7 @@ const Dashboard = () => {
         
         <div className="flex items-center gap-3">
           <Button
-            className="h-11 px-6 bg-[#0061FF] hover:bg-[#0052D9] text-white rounded-md font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2"
+            className="h-11 px-6 bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-md font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center gap-2"
             onClick={() => setIsUploadModalOpen(true)}
           >
             <Upload size={18} />
@@ -130,7 +148,7 @@ const Dashboard = () => {
       <div className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Folders</h2>
-          <Button variant="ghost" className="text-[#0061FF] font-bold text-sm h-auto p-0 hover:bg-transparent">
+          <Button variant="ghost" className="text-[#4f46e5] font-bold text-sm h-auto p-0 hover:bg-transparent">
             View all
           </Button>
         </div>
@@ -141,8 +159,11 @@ const Dashboard = () => {
               <FolderCard
                 key={folder.id}
                 folder={folder}
-                onEdit={(f) => alert(`Edit folder: ${f.name}`)}
-                onDelete={deleteFolder}
+                onEdit={(f) => showToast(`Edit folder: ${f.name} coming soon!`, 'info')}
+                onDelete={(folderId) => {
+                  const folder = folders.find(f => f.id === folderId);
+                  setConfirmData({ isOpen: true, item: folder, type: 'folder', action: 'delete' });
+                }}
                 onContextMenu={(e) => handleContextMenu(e, folder, 'folder')}
               />
             ))}
@@ -174,7 +195,7 @@ const Dashboard = () => {
                 onClick={() => setActiveTab('mine')}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                  activeTab === 'mine' ? "bg-white text-[#0061FF] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                  activeTab === 'mine' ? "bg-white text-[#4f46e5] shadow-sm" : "text-slate-500 hover:text-slate-900"
                 )}
               >
                 Personal
@@ -183,7 +204,7 @@ const Dashboard = () => {
                 onClick={() => setActiveTab('shared')}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                  activeTab === 'shared' ? "bg-white text-[#0061FF] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                  activeTab === 'shared' ? "bg-white text-[#4f46e5] shadow-sm" : "text-slate-500 hover:text-slate-900"
                 )}
               >
                 Shared
@@ -198,7 +219,7 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold text-slate-900 tracking-tight"></h2> {/* Title moved to new header section */}
           <div className="flex items-center gap-4">
              <div className="flex border border-slate-200 rounded-lg p-1">
-                <button className="p-1 px-3 bg-slate-50 text-[#0061FF] rounded-md text-xs font-bold">List</button>
+                <button className="p-1 px-3 bg-slate-50 text-[#4f46e5] rounded-md text-xs font-bold">List</button>
                 <button className="p-1 px-3 text-slate-400 rounded-md text-xs font-bold hover:text-slate-600 transition-colors">Grid</button>
              </div>
           </div>
@@ -211,10 +232,13 @@ const Dashboard = () => {
             if (isOpen) {
               navigate(`/dashboard/document/${f.id}`);
             } else {
-              alert(`Edit file: ${f.name}`);
+              showToast(`Opening preview for ${f.name} coming soon!`, 'info');
             }
           }}
-          onDelete={deleteFile}
+          onDelete={(fileId) => {
+            const file = files.find(f => f.id === fileId);
+            setConfirmData({ isOpen: true, item: file, type: 'file', action: 'delete' });
+          }}
         />
       </div>
 
@@ -238,8 +262,8 @@ const Dashboard = () => {
             ? navigate(`/dashboard/folder/${item.id}`) 
             : navigate(`/dashboard/document/${item.id}`),
           onShare: (item) => handleShareAction(item, contextMenu.type),
-          onRename: (item) => alert(`Rename ${contextMenu.type}: ${item.name}`),
-          onDelete: (item) => contextMenu.type === 'folder' ? deleteFolder(item.id) : deleteFile(item.id),
+          onRename: (item) => setConfirmData({ isOpen: true, item, type: contextMenu.type, action: 'rename' }),
+          onDelete: (item) => setConfirmData({ isOpen: true, item, type: contextMenu.type, action: 'delete' }),
           onDownload: contextMenu.type === 'file' ? (file) => {
             if (file.file_url) {
               const link = document.createElement('a');
@@ -258,6 +282,19 @@ const Dashboard = () => {
         onClose={() => setShareModal({ ...shareModal, isOpen: false })}
         item={shareModal.item}
         type={shareModal.type}
+      />
+
+      <ConfirmModal 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={handleConfirmAction}
+        title={confirmData.action === 'delete' ? `Delete ${confirmData.type}?` : `Rename ${confirmData.type}?`}
+        message={confirmData.action === 'delete' 
+          ? `Are you sure you want to delete "${confirmData.item?.name}"? This cannot be undone.`
+          : `You are about to rename "${confirmData.item?.name}".`
+        }
+        confirmText={confirmData.action === 'delete' ? 'Delete' : 'Continue'}
+        variant={confirmData.action === 'delete' ? 'danger' : 'info'}
       />
     </DashboardLayout>
   );

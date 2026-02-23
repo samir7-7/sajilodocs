@@ -98,6 +98,7 @@ export const fileAPI = {
   lock: (id) => api.post(`/files/${id}/lock/`),
   unlock: (id) => api.post(`/files/${id}/unlock/`),
   saveContent: (id, content) => api.post(`/files/${id}/save_content/`, { content }),
+  runOCR: (id) => api.post(`/files/${id}/run_ocr/`),
 };
 
 export const shareAPI = {
@@ -110,6 +111,7 @@ export const shareAPI = {
 
 export const notificationAPI = {
   list: () => api.get('/notifications/'),
+  markRead: (id) => api.post(`/notifications/${id}/mark_read/`),
   markAllRead: () => api.post('/notifications/mark_all_read/'),
 };
 

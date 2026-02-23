@@ -70,7 +70,7 @@ const Profile = () => {
               {/* Avatar Section */}
               <div className="flex flex-col items-center sm:flex-row sm:items-start gap-8">
                 <div className="relative group">
-                  <div className="h-28 w-28 rounded-full overflow-hidden bg-slate-50 ring-4 ring-white shadow-md transition-all duration-300 group-hover:ring-blue-50">
+                  <div className="h-28 w-28 rounded-full overflow-hidden bg-slate-50 ring-4 ring-white shadow-md transition-all duration-300 group-hover:ring-indigo-50">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
@@ -79,7 +79,7 @@ const Profile = () => {
                       </div>
                     )}
                   </div>
-                  <label className="absolute bottom-1 right-1 p-2 bg-[#0061FF] text-white rounded-full cursor-pointer hover:bg-[#0052D9] transition-all shadow-lg hover:scale-110">
+                  <label className="absolute bottom-1 right-1 p-2 bg-[#4f46e5] text-white rounded-full cursor-pointer hover:bg-[#4338ca] transition-all shadow-lg hover:scale-110">
                     <Camera size={16} />
                     <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
                   </label>
@@ -115,7 +115,7 @@ const Profile = () => {
                   <textarea
                     name="bio"
                     rows={4}
-                    className="flex w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-[#0061FF] transition-all"
+                    className="flex w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-[#4f46e5] transition-all"
                     placeholder="Tell us a little about yourself..."
                     value={formData.bio}
                     onChange={handleChange}
@@ -129,14 +129,14 @@ const Profile = () => {
               {message.text && (
                 <div className={cn(
                   "p-4 rounded-xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2",
-                  message.type === 'success' ? 'bg-blue-50 text-[#0061FF] border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'
+                  message.type === 'success' ? 'bg-indigo-50 text-[#4f46e5] border border-indigo-100' : 'bg-red-50 text-red-600 border border-red-100'
                 )}>
                   {message.text}
                 </div>
               )}
 
               <div className="flex justify-end pt-6 border-t border-slate-50">
-                <Button type="submit" isLoading={isSaving} className="h-12 px-8 rounded-xl font-bold shadow-blue-500/20">
+                <Button type="submit" isLoading={isSaving} className="h-12 px-8 rounded-xl font-bold shadow-indigo-500/20">
                   <Save size={18} className="mr-2" />
                   Save Changes
                 </Button>

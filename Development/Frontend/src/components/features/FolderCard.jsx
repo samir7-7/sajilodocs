@@ -31,13 +31,13 @@ const FolderCard = ({ folder, onEdit, onDelete, onContextMenu }) => {
   return (
     <div 
       className={cn(
-        "group relative bg-white border border-slate-200 rounded-xl p-5 hover:border-[#0061FF] hover:shadow-md transition-all duration-200 cursor-pointer",
+        "group relative bg-white border border-slate-200 rounded-xl p-5 hover:border-[#4f46e5] hover:shadow-md transition-all duration-200 cursor-pointer",
       )}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-blue-50 text-[#0061FF] rounded-lg group-hover:bg-[#0061FF] group-hover:text-white transition-colors duration-200">
+        <div className="p-3 bg-indigo-50 text-[#4f46e5] rounded-lg group-hover:bg-[#4f46e5] group-hover:text-white transition-colors duration-200">
           <Folder size={24} fill="currentColor" fillOpacity={0.1} />
         </div>
       </div>
