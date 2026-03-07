@@ -67,9 +67,21 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
+        # generate & send OTP so that user can verify email before logging in
+        from .utils import generate_otp, send_otp_email
+        from .models import OTPVerification
+
+        otp_code = generate_otp()
+        # set expiry 10 minutes ahead (same as email message)
+        from django.utils import timezone
+        from datetime import timedelta
+        expires = timezone.now() + timedelta(minutes=10)
+        OTPVerification.objects.create(user=user, otp_code=otp_code, expires_at=expires)
+        send_otp_email(user.email, otp_code)
+
         return Response({
-            "message": "Registration successful. You can now login.",
+            "message": "Registration successful. Please check your inbox for a verification code.",
             "email": user.email
         }, status=status.HTTP_201_CREATED)
 

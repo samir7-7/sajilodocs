@@ -1,3 +1,10 @@
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+# Explicitly point to .env file location
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+
 """
 Django settings for Backend project.
 
@@ -62,7 +69,9 @@ ROOT_URLCONF = "Backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR.parent.parent / 'Development' / 'Frontend' / 'dist',
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -127,6 +136,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR.parent.parent / 'Development' / 'Frontend' / 'dist',
+]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -170,8 +183,11 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  
+    "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
