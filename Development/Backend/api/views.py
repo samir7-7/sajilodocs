@@ -302,6 +302,7 @@ class FileViewSet(viewsets.ModelViewSet):
         # Run OCR in a background thread
         import threading
         from .ocr import OCRProcessor
+        from .translation import TranslationProcessor
         
         def process_ocr_task(file_id, user_id):
             try:
@@ -357,6 +358,88 @@ class FileViewSet(viewsets.ModelViewSet):
         thread.start()
 
         return Response({"status": "OCR started in background", "ocr_status": "PROCESSING"})
+
+    @action(detail=True, methods=['post'])
+    def translate(self, request, pk=None):
+        file = self.get_object()
+        target_lang = request.data.get('target_language')
+        
+        if not target_lang:
+            return Response({"error": "target_language is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not file.ocr_text:
+            return Response({"error": "No OCR text found for translation. Run OCR first."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check permissions
+        if file.owner != request.user:
+            can_edit = FileShare.objects.filter(
+                file=file, shared_with=request.user, permission='EDIT'
+            ).filter(Q(expires_at__gt=timezone.now()) | Q(expires_at__isnull=True)).exists()
+            if not can_edit:
+                return Response({"error": "No permission to translate"}, status=status.HTTP_403_FORBIDDEN)
+
+        if file.translation_status == 'PROCESSING':
+            return Response({"error": "Translation is already in progress"}, status=status.HTTP_409_CONFLICT)
+
+        # Update status to processing
+        file.translation_status = 'PROCESSING'
+        file.translation_language = target_lang
+        file.save()
+
+        # Create notification
+        from .models import Notification
+        Notification.objects.create(
+            user=request.user,
+            title="Translation Started",
+            message=f"Translating '{file.name}' to {target_lang}...",
+            type='INFO'
+        )
+
+        import threading
+        from .translation import TranslationProcessor
+        
+        def process_translation_task(file_id, user_id, language):
+            try:
+                from .models import File, Notification
+                curr_file = File.objects.get(id=file_id)
+                curr_user = User.objects.get(id=user_id)
+                
+                # Perform Translation
+                translated_text = TranslationProcessor.translate_text(curr_file.ocr_text, language)
+                
+                # Update file
+                curr_file.translated_text = translated_text
+                curr_file.translation_status = 'COMPLETED'
+                curr_file.save()
+                
+                # Create notification
+                Notification.objects.create(
+                    user=curr_user,
+                    title="Translation Completed",
+                    message=f"Translation for '{curr_file.name}' to {language} is complete.",
+                    type='SUCCESS'
+                )
+                
+            except Exception as e:
+                print(f"DEBUG: Translation task failed: {str(e)}")
+                try:
+                    failed_file = File.objects.get(id=file_id)
+                    failed_file.translation_status = 'FAILED'
+                    failed_file.save()
+                    
+                    Notification.objects.create(
+                        user=curr_user,
+                        title="Translation Failed",
+                        message=f"Translation for '{failed_file.name}' failed: {str(e)}",
+                        type='ERROR'
+                    )
+                except:
+                    pass
+
+        thread = threading.Thread(target=process_translation_task, args=(file.id, request.user.id, target_lang))
+        thread.start()
+
+        return Response({"status": "Translation started in background", "translation_status": "PROCESSING"})
 
 class FolderShareViewSet(viewsets.ModelViewSet):
     serializer_class = FolderShareSerializer

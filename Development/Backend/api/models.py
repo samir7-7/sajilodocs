@@ -54,6 +54,12 @@ class File(models.Model):
         COMPLETED = 'COMPLETED', 'Completed'
         FAILED = 'FAILED', 'Failed'
 
+    class TranslationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        PROCESSING = 'PROCESSING', 'Processing'
+        COMPLETED = 'COMPLETED', 'Completed'
+        FAILED = 'FAILED', 'Failed'
+
     status = models.CharField(max_length=10, choices=FileStatus.choices, default=FileStatus.ACTIVE)
     ocr_text = models.TextField(blank=True, null=True)
     ocr_status = models.CharField(
@@ -62,6 +68,14 @@ class File(models.Model):
         default=OCRStatus.PENDING
     )
     ocr_extracted_at = models.DateTimeField(null=True, blank=True)
+    
+    translated_text = models.TextField(blank=True, null=True)
+    translation_status = models.CharField(
+        max_length=20, 
+        choices=TranslationStatus.choices, 
+        default=TranslationStatus.PENDING
+    )
+    translation_language = models.CharField(max_length=50, blank=True, null=True)
     locked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='locked_files')
     locked_at = models.DateTimeField(null=True, blank=True)
     is_notarized = models.BooleanField(default=False)

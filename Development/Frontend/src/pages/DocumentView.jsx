@@ -61,6 +61,9 @@ const DocumentView = () => {
   const [newTagInput, setNewTagInput] = useState('');
   const [activeView, setActiveView] = useState('original'); // 'original' or 'ocr'
   const [isOCRProcessing, setIsOCRProcessing] = useState(file.ocr_status === 'PROCESSING');
+  const [isTranslationProcessing, setIsTranslationProcessing] = useState(file.translation_status === 'PROCESSING');
+  const [targetLanguage, setTargetLanguage] = useState('English');
+  const languages = ['English', 'Nepali', 'Spanish', 'Hindi', 'Chinese', 'Japanese', 'French', 'German'];
 
   const editorRef = React.useRef(null);
 
@@ -206,6 +209,64 @@ const DocumentView = () => {
     const ext = file.name?.split('.').pop()?.toLowerCase();
     return supportedExts.includes(ext) || file.type?.includes('image/') || file.type === 'application/pdf';
   };
+
+  const handleTranslate = async () => {
+    if (file.translation_status === 'PROCESSING') return;
+    if (!file.ocr_text) {
+        showToast('Please run OCR first to extract text.', 'warning');
+        return;
+    }
+
+    try {
+        setIsTranslationProcessing(true);
+        await fileAPI.translate(file.id, targetLanguage);
+        showToast(`Translation to ${targetLanguage} started. We'll notify you when it's ready!`, 'info');
+        
+        if (setFiles) {
+            setFiles(prev => prev.map(f => f.id === file.id ? { ...f, translation_status: 'PROCESSING', translation_language: targetLanguage } : f));
+        }
+    } catch (error) {
+        console.error('Translation failed:', error);
+        showToast(error.response?.data?.error || 'Failed to start translation', 'error');
+        setIsTranslationProcessing(false);
+    }
+  };
+
+  // Poll for Translation status
+  useEffect(() => {
+    let interval;
+    if (file.translation_status === 'PROCESSING') {
+      setIsTranslationProcessing(true);
+      interval = setInterval(async () => {
+        try {
+          const res = await fileAPI.get(file.id);
+          const updatedFile = res.data;
+          
+          if (updatedFile.translation_status !== 'PROCESSING') {
+            setIsTranslationProcessing(false);
+            if (setFiles) {
+                setFiles(prev => prev.map(f => f.id === file.id ? updatedFile : f));
+            }
+            clearInterval(interval);
+            
+            if (updatedFile.translation_status === 'COMPLETED') {
+              showToast(`Translation to ${updatedFile.translation_language} completed!`, 'success');
+              setActiveView('translation');
+            } else if (updatedFile.translation_status === 'FAILED') {
+              showToast('Translation failed', 'error');
+            }
+          }
+        } catch (error) {
+          console.error('Polling failed:', error);
+          clearInterval(interval);
+        }
+      }, 3000);
+    } else {
+      setIsTranslationProcessing(false);
+    }
+    
+    return () => clearInterval(interval);
+  }, [file.translation_status, file.id]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -422,6 +483,31 @@ const DocumentView = () => {
                     <div className="p-12 prose prose-slate max-w-none prose-sm overflow-y-auto">
                       <pre className="whitespace-pre-wrap font-sans text-slate-600 leading-relaxed text-base bg-slate-50 p-8 rounded-2xl border border-slate-100 min-h-[800px]">
                         {file.ocr_text || 'No text extracted yet.'}
+                      </pre>
+                    </div>
+                  </div>
+                ) : activeView === 'translation' ? (
+                  <div className="w-full h-full flex flex-col bg-white">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">Translated Text ({file.translation_language})</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Generated via Gemini AI</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2 font-bold"
+                        onClick={() => {
+                          navigator.clipboard.writeText(file.translated_text);
+                          showToast('Copied to clipboard!', 'success');
+                        }}
+                      >
+                        <Save size={14} /> Copy Translation
+                      </Button>
+                    </div>
+                    <div className="p-12 prose prose-slate max-w-none prose-sm overflow-y-auto">
+                      <pre className="whitespace-pre-wrap font-sans text-slate-600 leading-relaxed text-base bg-slate-50 p-8 rounded-2xl border border-slate-100 min-h-[800px]">
+                        {file.translated_text || 'No translation available.'}
                       </pre>
                     </div>
                   </div>
@@ -685,31 +771,61 @@ const DocumentView = () => {
                     {activeView === 'ocr' ? 'View Original' : 'View Extracted Text'}
                   </button>
                 )}
+                {file.translation_status === 'COMPLETED' && (
+                  <button 
+                    onClick={() => setActiveView(activeView === 'translation' ? 'original' : 'translation')}
+                    className="mt-2 text-[10px] font-bold text-[#4f46e5] underline uppercase tracking-widest block w-full hover:text-[#4338ca] transition-colors"
+                  >
+                    {activeView === 'translation' ? 'View Original' : `View ${file.translation_language} Translation`}
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="pt-6 border-t border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4">Translate</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Translate</h3>
               <div className="flex items-center gap-2 mb-4">
-                <select className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm bg-white">
-                  <option>English</option>
-                  <option>Nepali</option>
-                  <option>Spanish</option>
+                <select 
+                    className="flex-1 rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/10 transition-all cursor-pointer"
+                    value="Original"
+                    disabled
+                >
+                  <option>Original</option>
                 </select>
-                <span className="text-gray-400">→</span>
-                <select className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm bg-white">
-                  <option>English</option>
-                  <option>Nepali</option>
-                  <option>Spanish</option>
+                <span className="text-slate-300">→</span>
+                <select 
+                    className="flex-1 rounded-xl border border-transparent bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/10 transition-all cursor-pointer"
+                    value={targetLanguage}
+                    onChange={(e) => setTargetLanguage(e.target.value)}
+                >
+                  {languages.map(lang => (
+                      <option key={lang} value={lang}>{lang}</option>
+                  ))}
                 </select>
               </div>
               <Button 
-                variant="secondary" 
-                className="w-full gap-2"
-                onClick={() => showToast('Translation in progress...', 'info')}
+                variant={file.translation_status === 'COMPLETED' ? 'outline' : 'secondary'} 
+                className={cn(
+                    "w-full gap-2.5 h-11 font-bold shadow-sm",
+                    isTranslationProcessing && "animate-pulse"
+                )}
+                onClick={handleTranslate}
+                disabled={isTranslationProcessing || !file.ocr_text}
               >
-                <Languages size={18} /> Translate
+                {isTranslationProcessing ? (
+                    'Translating...'
+                ) : (
+                    <>
+                        <Languages size={18} /> 
+                        {file.translation_status === 'COMPLETED' ? 'Re-translate' : 'Translate'}
+                    </>
+                )}
               </Button>
+              {!file.ocr_text && (
+                  <p className="mt-2 text-[10px] text-rose-500 font-bold uppercase tracking-tight text-center italic">
+                      Run OCR first to extract text for translation
+                  </p>
+              )}
             </div>
           </div>
         </aside>

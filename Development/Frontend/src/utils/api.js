@@ -99,6 +99,7 @@ export const fileAPI = {
   unlock: (id) => api.post(`/files/${id}/unlock/`),
   saveContent: (id, content) => api.post(`/files/${id}/save_content/`, { content }),
   runOCR: (id) => api.post(`/files/${id}/run_ocr/`),
+  translate: (id, target_language) => api.post(`/files/${id}/translate/`, { target_language }),
 };
 
 export const shareAPI = {
