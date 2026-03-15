@@ -285,90 +285,95 @@ class FileViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def run_ocr(self, request, pk=None):
-        file = self.get_object()
-        
-        # Check permissions
-        if file.owner != request.user:
-            can_edit = FileShare.objects.filter(
-                file=file, shared_with=request.user, permission='EDIT'
-            ).filter(Q(expires_at__gt=timezone.now()) | Q(expires_at__isnull=True)).exists()
-            if not can_edit:
-                return Response({"error": "No permission to run OCR"}, status=status.HTTP_403_FORBIDDEN)
-
-        if file.ocr_status == 'PROCESSING':
-            return Response({"error": "OCR is already in progress"}, status=status.HTTP_409_CONFLICT)
-
-        # Update status to processing
-        file.ocr_status = 'PROCESSING'
-        file.save()
-
-        # Create persistent notification for start
-        from .models import Notification
-        Notification.objects.create(
-            user=request.user,
-            title="OCR Started",
-            message=f"Text extraction for '{file.name}' has started. You can continue working; we'll notify you when it's done.",
-            type='INFO'
-        )
-
-        # Run OCR in a background thread
-        import threading
-        from .ocr import OCRProcessor
-        
-        def process_ocr_task(file_id, user_id):
-            try:
-                from .models import File, Notification
-                curr_file = File.objects.get(id=file_id)
-                curr_user = User.objects.get(id=user_id)
-                
-                # Perform OCR
-                text = OCRProcessor.process_file(curr_file.file.path)
-                text = text.strip() if text else ""
-                
-                # Update file
-                curr_file.ocr_text = text
-                curr_file.ocr_status = 'COMPLETED'
-                curr_file.ocr_extracted_at = timezone.now()
-                curr_file.save()
-                
-                # Create notification
-                if text:
-                    Notification.objects.create(
-                        user=curr_user,
-                        title="OCR Completed",
-                        message=f"Text extraction for '{curr_file.name}' is complete.",
-                        type='SUCCESS'
-                    )
-                else:
-                    Notification.objects.create(
-                        user=curr_user,
-                        title="OCR Processed",
-                        message=f"Processing finished for '{curr_file.name}', but no text was detected.",
-                        type='INFO'
-                    )
-                
-                print(f"DEBUG: OCR completed for {curr_file.name} (Text found: {bool(text)})")
-                
-            except Exception as e:
-                print(f"DEBUG: OCR task failed: {str(e)}")
+        try:
+            file = self.get_object()
+            
+            # Check permissions
+            if file.owner != request.user:
+                can_edit = FileShare.objects.filter(
+                    file=file, shared_with=request.user, permission='EDIT'
+                ).filter(Q(expires_at__gt=timezone.now()) | Q(expires_at__isnull=True)).exists()
+                if not can_edit:
+                    return Response({"error": "No permission to run OCR"}, status=status.HTTP_403_FORBIDDEN)
+            
+            if file.ocr_status == 'PROCESSING':
+                return Response({"error": "OCR is already in progress"}, status=status.HTTP_409_CONFLICT)
+            
+            # Update status to processing
+            file.ocr_status = 'PROCESSING'
+            file.save()
+            
+            # Create persistent notification for start
+            from .models import Notification
+            Notification.objects.create(
+                user=request.user,
+                title="OCR Started",
+                message=f"Text extraction for '{file.name}' has started. You can continue working; we'll notify you when it's done.",
+                type='INFO'
+            )
+            
+            # Run OCR in a background thread
+            import threading
+            from .ocr import OCRProcessor
+            
+            def process_ocr_task(file_id, user_id):
                 try:
-                    failed_file = File.objects.get(id=file_id)
-                    failed_file.ocr_status = 'FAILED'
-                    failed_file.save()
+                    from .models import File, Notification
+                    curr_file = File.objects.get(id=file_id)
+                    curr_user = User.objects.get(id=user_id)
                     
-                    Notification.objects.create(
-                        user=curr_user,
-                        title="OCR Failed",
-                        message=f"Text extraction for '{failed_file.name}' failed: {str(e)}",
-                        type='ERROR'
-                    )
-                except:
-                    pass
-
-        thread = threading.Thread(target=process_ocr_task, args=(file.id, request.user.id))
-        thread.start()
-
-        return Response({"status": "OCR started in background", "ocr_status": "PROCESSING"})
+                    # Perform OCR
+                    text = OCRProcessor.process_file(curr_file.file.path)
+                    text = text.strip() if text else ""
+                    
+                    # Update file
+                    curr_file.ocr_text = text
+                    curr_file.ocr_status = 'COMPLETED'
+                    curr_file.ocr_extracted_at = timezone.now()
+                    curr_file.save()
+                    
+                    # Create notification
+                    if text:
+                        Notification.objects.create(
+                            user=curr_user,
+                            title="OCR Completed",
+                            message=f"Text extraction for '{curr_file.name}' is complete.",
+                            type='SUCCESS'
+                        )
+                    else:
+                        Notification.objects.create(
+                            user=curr_user,
+                            title="OCR Processed",
+                            message=f"Processing finished for '{curr_file.name}', but no text was detected.",
+                            type='INFO'
+                        )
+                    
+                    print(f"DEBUG: OCR completed for {curr_file.name} (Text found: {bool(text)})")
+                    
+                except Exception as e:
+                    print(f"DEBUG: OCR task failed: {str(e)}")
+                    try:
+                        failed_file = File.objects.get(id=file_id)
+                        failed_file.ocr_status = 'FAILED'
+                        failed_file.save()
+                        
+                        Notification.objects.create(
+                            user=curr_user,
+                            title="OCR Failed",
+                            message=f"Text extraction for '{failed_file.name}' failed: {str(e)}",
+                            type='ERROR'
+                        )
+                    except Exception:
+                        pass
+            
+            thread = threading.Thread(target=process_ocr_task, args=(file.id, request.user.id))
+            thread.start()
+            
+            return Response({"status": "OCR started in background", "ocr_status": "PROCESSING"})
+        except Exception as e:
+            # Log and return a safe 500 with message so the frontend can show it
+            print(f"DEBUG: run_ocr failed for file {pk}: {str(e)}")
+            return Response({"error": f"OCR could not be started: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class FolderShareViewSet(viewsets.ModelViewSet):
     serializer_class = FolderShareSerializer
