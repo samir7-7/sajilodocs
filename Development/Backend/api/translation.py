@@ -1,4 +1,5 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 import logging
 from django.conf import settings
@@ -18,42 +19,43 @@ class TranslationProcessor:
                 logger.error("GEMINI_API_KEY not found in environment variables.")
                 raise ValueError("Gemini API Key is not configured.")
 
-            genai.configure(api_key=api_key)
+            # Initialize the client
+            client = genai.Client(api_key=api_key)
             
             # List of models to try in order of preference
             models_to_try = [
-                'models/gemini-flash-latest',
-                'models/gemini-1.5-flash-latest',
-                'models/gemini-1.5-flash',
-                'models/gemini-2.0-flash-exp',
-                'models/gemini-1.5-pro-latest',
+                'gemini-2.0-flash-exp',
                 'gemini-1.5-flash',
+                'gemini-1.5-pro',
+                'gemini-1.5-flash-latest',
                 'gemini-pro',
             ]
+            
+            prompt = f"""
+Task: Translate the following text into {target_language}.
+
+Guidelines:
+- Do not provide a literal word-for-word translation.
+- Ensure the translation is natural, fluent, and suitable for a native speaker of {target_language}.
+- Maintain the original meaning and tone of the text.
+- If the text contains technical terms, use the appropriate equivalents in {target_language}.
+- Understand the context of the whole text before translating.
+
+Input Text:
+\"\"\"{text}\"\"\"
+
+Translated Text:
+"""
             
             last_error = None
             for model_name in models_to_try:
                 try:
                     logger.info(f"Attempting translation with model: {model_name}")
-                    model = genai.GenerativeModel(model_name)
                     
-                    prompt = f"""
-                    Task: Translate the following text into {target_language}.
-                    
-                    Guidelines:
-                    - Do not provide a literal word-for-word translation.
-                    - Ensure the translation is natural, fluent, and suitable for a native speaker of {target_language}.
-                    - Maintain the original meaning and tone of the text.
-                    - If the text contains technical terms, use the appropriate equivalents in {target_language}.
-                    - Understand the context of the whole text before translating.
-
-                    Input Text:
-                    \"\"\"{text}\"\"\"
-
-                    Translated Text:
-                    """
-
-                    response = model.generate_content(prompt)
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt
+                    )
                     
                     if response and response.text:
                         logger.info(f"Translation successful using model: {model_name}")

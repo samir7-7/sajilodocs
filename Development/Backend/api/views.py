@@ -301,12 +301,11 @@ class FileViewSet(viewsets.ModelViewSet):
 
         # Run OCR in a background thread
         import threading
-        from .ocr import OCRProcessor
-        from .translation import TranslationProcessor
         
         def process_ocr_task(file_id, user_id):
             try:
                 from .models import File, Notification
+                from .ocr import OCRProcessor
                 curr_file = File.objects.get(id=file_id)
                 curr_user = User.objects.get(id=user_id)
                 
@@ -399,6 +398,8 @@ class FileViewSet(viewsets.ModelViewSet):
         from .translation import TranslationProcessor
         
         def process_translation_task(file_id, user_id, language):
+            curr_file = None
+            curr_user = None
             try:
                 from .models import File, Notification
                 curr_file = File.objects.get(id=file_id)
@@ -423,17 +424,23 @@ class FileViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"DEBUG: Translation task failed: {str(e)}")
                 try:
-                    failed_file = File.objects.get(id=file_id)
-                    failed_file.translation_status = 'FAILED'
-                    failed_file.save()
+                    from .models import File, Notification
+                    if curr_file is None:
+                        curr_file = File.objects.get(id=file_id)
+                    if curr_user is None:
+                        curr_user = User.objects.get(id=user_id)
+                    
+                    curr_file.translation_status = 'FAILED'
+                    curr_file.save()
                     
                     Notification.objects.create(
                         user=curr_user,
                         title="Translation Failed",
-                        message=f"Translation for '{failed_file.name}' failed: {str(e)}",
+                        message=f"Translation for '{curr_file.name}' failed: {str(e)}",
                         type='ERROR'
                     )
-                except:
+                except Exception as inner_e:
+                    print(f"DEBUG: Error handling failed: {str(inner_e)}")
                     pass
 
         thread = threading.Thread(target=process_translation_task, args=(file.id, request.user.id, target_lang))

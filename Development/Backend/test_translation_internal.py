@@ -10,12 +10,14 @@ def test_manual_translation():
     test_text = "The quick brown fox jumps over the lazy dog."
     target_lang = "Nepali"
     
-    import google.generativeai as genai
-    genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+    from google import genai
+    client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
     print("Available Models:")
-    for m in genai.list_models():
-        if 'generateContent' in m.supported_generation_methods:
+    try:
+        for m in client.models.list():
             print(m.name)
+    except Exception as e:
+        print(f"Could not list models: {e}")
     print("-" * 20)
     
     print(f"Original Text: {test_text}")
