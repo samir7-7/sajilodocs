@@ -47,7 +47,15 @@ def test_auth_flow():
         print("FAILED: User should be inactive before OTP verification")
         return
     print("SUCCESS: User is inactive")
-    
+
+    # attempt login before verifying otp should fail
+    print("3.a Attempting login while account still inactive (should 401 or error)")
+    login_resp = client.post('/api/auth/login/', {'username': email, 'password': password}, format='json')
+    if login_resp.status_code == 200:
+        print("FAILED: Was able to login with inactive account")
+        return
+    print(f"SUCCESS: inactive login blocked ({login_resp.status_code})")
+
     print("4. Retrieving OTP...")
     try:
         otp_obj = OTPVerification.objects.get(user=user)

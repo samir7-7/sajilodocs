@@ -1,0 +1,19 @@
+# Django & API
+Django>=5.0
+djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
+psycopg2-binary
+python-dotenv
+
+# OCR (required for PDF + image text extraction)
+pymupdf
+Pillow
+pytesseract
+google-genai
+opencv-python-headless
+numpy
+
+# Document editing
+python-docx
+htmldocx

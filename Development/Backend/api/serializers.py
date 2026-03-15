@@ -26,7 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
             phone_number=validated_data.get('phone_number', ''),
-            is_active=True  # User is active immediately
+            is_active=False  # will be activated once OTP is verified
         )
         return user
 
