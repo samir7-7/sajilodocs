@@ -22,19 +22,26 @@ export const FileSystemProvider = ({ children }) => {
     const fetchData = async () => {
       console.log('FileSystemContext: Starting data fetch...');
       try {
-        const [foldersRes, filesRes] = await Promise.all([
+        const [foldersResult, filesResult] = await Promise.allSettled([
           folderAPI.list(),
           fileAPI.list(),
         ]);
-        
-        console.log('FileSystemContext: Folders fetched:', foldersRes.data);
-        console.log('FileSystemContext: Files fetched:', filesRes.data);
-        
-        const allFiles = filesRes.data || [];
-        const foldersList = foldersRes.data || [];
-        
-        setFolders(foldersList);
-        setFiles(allFiles); // Keep files as all for now, but we'll add getters for categories
+
+        if (foldersResult.status === 'fulfilled') {
+          console.log('FileSystemContext: Folders fetched:', foldersResult.value.data);
+          setFolders(foldersResult.value.data || []);
+        } else {
+          console.error('FileSystemContext: Folder fetch failed:', foldersResult.reason);
+          setFolders([]);
+        }
+
+        if (filesResult.status === 'fulfilled') {
+          console.log('FileSystemContext: Files fetched:', filesResult.value.data);
+          setFiles(filesResult.value.data || []);
+        } else {
+          console.error('FileSystemContext: File fetch failed:', filesResult.reason);
+          setFiles([]);
+        }
       } catch (error) {
         console.error('FileSystemContext: Error fetching data:', error);
       } finally {
