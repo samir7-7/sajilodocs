@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { folderAPI, fileAPI } from '../utils/api';
 
@@ -31,12 +32,6 @@ export const FileSystemProvider = ({ children }) => {
         
         const allFiles = filesRes.data || [];
         const foldersList = foldersRes.data || [];
-        
-        // Categorize files based on RBAC 'role'
-        // 'OWNER' -> My Files
-        // 'EDITOR' or 'VIEW' -> Shared With Me
-        const myFiles = allFiles.filter(f => f.role === 'OWNER');
-        const sharedFilesList = allFiles.filter(f => f.role === 'EDITOR' || f.role === 'VIEW');
         
         setFolders(foldersList);
         setFiles(allFiles); // Keep files as all for now, but we'll add getters for categories
@@ -100,9 +95,7 @@ export const FileSystemProvider = ({ children }) => {
       formData.append('tags', JSON.stringify(fileData.tags || []));
       
       if (fileData.metadata) {
-        if (fileData.metadata.author) {
-          formData.append('metadata', JSON.stringify({ author: fileData.metadata.author }));
-        }
+        formData.append('metadata', JSON.stringify(fileData.metadata));
       }
 
       const response = await fileAPI.upload(formData);

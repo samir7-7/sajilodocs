@@ -1,10 +1,15 @@
 import os
 import logging
 import time
+import shutil
 
 from PIL import Image, ImageFilter, ImageOps
 import pytesseract
-from google import genai
+from pytesseract import Output
+try:
+    from google import genai
+except ImportError:
+    genai = None
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +24,7 @@ except ImportError:
 # Lazy import: fitz (PyMuPDF) is only needed for PDFs. Import when first needed
 # so image-only OCR works even if pymupdf is not installed.
 _fitz_module = None
+_TESSERACT_CONFIGURED = False
 
 
 def _get_fitz():
@@ -44,10 +50,61 @@ def _get_fitz():
 # Default to English + Nepali (Devanagari) if language data is installed.
 # You can override this via environment variable OCR_LANGS, e.g. "eng+nep".
 OCR_LANGS = os.environ.get("OCR_LANGS", "eng+nep")
+OCR_PREFER_GEMINI = os.environ.get("OCR_PREFER_GEMINI", "1").lower() not in ("0", "false", "no")
+
+
+def _validate_tesseract_runtime() -> bool:
+    """Return True only if pytesseract can successfully invoke tesseract."""
+    try:
+        pytesseract.get_tesseract_version()
+        return True
+    except Exception:
+        return False
+
+
+def _ensure_tesseract_configured() -> bool:
+    """
+    Ensure pytesseract can find the tesseract binary.
+    On Windows, also checks common install locations when PATH is missing.
+    """
+    global _TESSERACT_CONFIGURED
+    if _TESSERACT_CONFIGURED:
+        return _validate_tesseract_runtime()
+
+    # 1) Respect explicit env override first.
+    configured_cmd = os.environ.get("TESSERACT_CMD")
+    if configured_cmd and os.path.exists(configured_cmd):
+        pytesseract.pytesseract.tesseract_cmd = configured_cmd
+        if _validate_tesseract_runtime():
+            _TESSERACT_CONFIGURED = True
+            return True
+
+    # 2) If binary is in PATH, pytesseract can invoke it directly.
+    if shutil.which("tesseract"):
+        if _validate_tesseract_runtime():
+            _TESSERACT_CONFIGURED = True
+            return True
+
+    # 3) Common Windows paths.
+    common_paths = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Tesseract-OCR", "tesseract.exe"),
+    ]
+    for path in common_paths:
+        if path and os.path.exists(path):
+            pytesseract.pytesseract.tesseract_cmd = path
+            if _validate_tesseract_runtime():
+                _TESSERACT_CONFIGURED = True
+                logger.info("Tesseract configured at %s", path)
+                return True
+
+    return False
 
 
 # ── Gemini setup (used ONLY for low-quality handwritten English) ──────────────
 _gemini_client = None
+_gemini_disabled = False
 
 
 def _ensure_gemini_configured() -> bool:
@@ -55,9 +112,15 @@ def _ensure_gemini_configured() -> bool:
     Configure Gemini client from GEMINI_API_KEY.
     Returns False if no key is set so we can safely stay fully local.
     """
-    global _gemini_client
+    global _gemini_client, _gemini_disabled
+    if _gemini_disabled:
+        return False
     if _gemini_client is not None:
         return True
+
+    if genai is None:
+        logger.info("google-genai not installed; skipping handwriting API fallback.")
+        return False
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -70,6 +133,7 @@ def _ensure_gemini_configured() -> bool:
     except Exception as e:
         logger.error(f"Failed to configure Gemini client: {e}")
         _gemini_client = None
+        _gemini_disabled = True
         return False
 
 
@@ -149,6 +213,44 @@ def _score_text_quality(text: str) -> float:
     return useful * density
 
 
+def _extract_with_tesseract(image: Image.Image, config: str) -> tuple[str, float]:
+    """Run one tesseract pass and return (text, avg_confidence)."""
+    text = pytesseract.image_to_string(image, lang=OCR_LANGS, config=config) or ""
+    avg_conf = 0.0
+    try:
+        data = pytesseract.image_to_data(image, lang=OCR_LANGS, config=config, output_type=Output.DICT)
+        conf_values = [float(c) for c in data.get("conf", []) if c not in ("-1", -1, None)]
+        if conf_values:
+            avg_conf = sum(conf_values) / len(conf_values)
+    except Exception:
+        # Confidence extraction can fail for some images/configs; text is still usable.
+        pass
+    return text, avg_conf
+
+
+def _best_tesseract_text(image: Image.Image) -> tuple[str, float]:
+    """Try a few OCR modes and keep the strongest result by confidence+quality."""
+    candidates = [
+        "--oem 3 --psm 6",
+        "--oem 3 --psm 11",
+        "--oem 3 --psm 4",
+    ]
+
+    best_text = ""
+    best_score = -1.0
+    best_conf = 0.0
+
+    for cfg in candidates:
+        txt, conf = _extract_with_tesseract(image, cfg)
+        score = _score_text_quality(txt) + (conf * 1.5)
+        if score > best_score:
+            best_score = score
+            best_text = txt
+            best_conf = conf
+
+    return best_text, best_conf
+
+
 def _image_to_text(image: Image.Image) -> str:
     """
     Run Tesseract on a PIL image.
@@ -158,21 +260,18 @@ def _image_to_text(image: Image.Image) -> str:
     2) If the result looks like noise/empty, retry with a config that
        tends to work slightly better for handwriting / sparse text.
     """
+    if not _ensure_tesseract_configured():
+        raise RuntimeError(
+            "Tesseract OCR engine was not found. Install Tesseract or set TESSERACT_CMD to the full tesseract.exe path."
+        )
+
+    # Respect camera EXIF orientation so ID cards are not OCR'd sideways/upside-down.
+    image = ImageOps.exif_transpose(image).convert("RGB")
     processed = _preprocess_image(image)
 
-    # Use configured languages (default "eng+nep"). If Nepali data is missing,
-    # Tesseract will fall back to the languages it has.
-    base_config = "--oem 3 --psm 6"  # block of text
-    text = pytesseract.image_to_string(processed, lang=OCR_LANGS, config=base_config) or ""
-
+    # Use configured languages (default "eng+nep") and select best OCR pass by confidence.
+    text, local_conf = _best_tesseract_text(processed)
     score = _score_text_quality(text)
-    # If we got very little usable content, try a handwriting‑oriented config.
-    if score < 40:
-        handwriting_config = "--oem 1 --psm 11"  # sparse / line‑oriented layout
-        alt_text = pytesseract.image_to_string(processed, lang=OCR_LANGS, config=handwriting_config) or ""
-        alt_score = _score_text_quality(alt_text)
-        if alt_score > score:
-            text, score = alt_text, alt_score
 
     # Final step: Gemini (same approach as your Colab) — best for ID cards, handwritten, Nepali
     if _ensure_gemini_configured():
@@ -202,11 +301,19 @@ def _image_to_text(image: Image.Image) -> str:
                                 # Use only the content after "[Extracted text:]" if present (Colab format)
                                 if "[Extracted text:]" in api_text:
                                     api_text = api_text.split("[Extracted text:]", 1)[-1].strip()
-                                if api_text and _score_text_quality(api_text) > _score_text_quality(text):
-                                    text = api_text
+                                if api_text:
+                                    api_score = _score_text_quality(api_text)
+                                    if OCR_PREFER_GEMINI or local_conf < 55.0 or api_score >= (score * 0.8):
+                                        text = api_text
+                                        score = api_score
                             break
                         except Exception as e:
                             err = str(e)
+                            if "403" in err or "permission_denied" in err.lower() or "reported as leaked" in err.lower():
+                                logger.error("Gemini API key rejected (403). Disable model fallback until process restart.")
+                                global _gemini_disabled
+                                _gemini_disabled = True
+                                return text.strip()
                             if "429" in err or "quota" in err.lower() or "TooManyRequests" in err:
                                 wait = 30 * (attempt + 1)
                                 logger.warning("Gemini rate limit, waiting %ds (attempt %d/5)...", wait, attempt + 1)

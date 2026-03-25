@@ -1,9 +1,15 @@
-from dotenv import load_dotenv
 from pathlib import Path
-import os
+import importlib
 
-# Explicitly point to .env file location
-load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+load_dotenv = None
+try:
+    load_dotenv = getattr(importlib.import_module("dotenv"), "load_dotenv", None)
+except ImportError:
+    pass
+
+# Explicitly point to .env file location when python-dotenv is available.
+if load_dotenv is not None:
+    load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 """
 Django settings for Backend project.
@@ -16,8 +22,6 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
-from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

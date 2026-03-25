@@ -99,6 +99,7 @@ export const fileAPI = {
   unlock: (id) => api.post(`/files/${id}/unlock/`),
   saveContent: (id, content) => api.post(`/files/${id}/save_content/`, { content }),
   runOCR: (id) => api.post(`/files/${id}/run_ocr/`),
+  generateNotarized: (id, data) => api.post(`/files/${id}/generate_notarized/`, data),
   translate: (id, target_language) => api.post(`/files/${id}/translate/`, { target_language }),
 };
 

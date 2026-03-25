@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+import json
 from .models import Folder, File, FolderShare, FileShare, Notification, OTPVerification
 from .validators import ComplexityValidator
+from .document_reconstruction import get_document_type_label
 
 User = get_user_model()
 
@@ -127,6 +129,8 @@ class FileSerializer(serializers.ModelSerializer):
     owner_details = UserSerializer(source='owner', read_only=True)
     shares = FileShareSerializer(many=True, read_only=True)
     file_url = serializers.SerializerMethodField()
+    notarized_file_url = serializers.SerializerMethodField()
+    document_type_label = serializers.SerializerMethodField()
 
     role = serializers.SerializerMethodField()
 
@@ -134,8 +138,36 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('id', 'name', 'file', 'size', 'type', 'folder', 'owner', 'owner_details', 'description', 'tags', 'metadata', 'created_at', 'updated_at', 'status', 'role', 'file_url', 'shares', 'locked_by', 'locked_at', 'locked_by_details', 'ocr_text', 'ocr_status', 'ocr_extracted_at', 'translated_text', 'translation_status', 'translation_language')
-        read_only_fields = ('id', 'owner', 'created_at', 'updated_at', 'size', 'type', 'role', 'locked_by', 'locked_at', 'ocr_text', 'ocr_status', 'ocr_extracted_at', 'translated_text', 'translation_status')
+        fields = (
+            'id', 'name', 'file', 'size', 'type', 'folder', 'owner', 'owner_details',
+            'description', 'tags', 'metadata', 'created_at', 'updated_at', 'status',
+            'role', 'file_url', 'shares', 'locked_by', 'locked_at', 'locked_by_details',
+            'ocr_text', 'corrected_ocr_text', 'ocr_status', 'ocr_extracted_at',
+            'document_type', 'document_type_label', 'document_type_confidence',
+            'document_type_source', 'extracted_fields', 'expiry_date', 'expiry_text',
+            'expiry_notification_sent_at', 'translated_text', 'translation_status',
+            'translation_language', 'is_notarized', 'notarized_file', 'notarized_file_url',
+            'notarized_generated_at'
+        )
+        read_only_fields = (
+            'id', 'owner', 'created_at', 'updated_at', 'size', 'type', 'role',
+            'locked_by', 'locked_at', 'ocr_text', 'ocr_status', 'ocr_extracted_at',
+            'document_type_confidence', 'document_type_source', 'extracted_fields',
+            'expiry_date', 'expiry_text', 'expiry_notification_sent_at', 'translated_text',
+            'translation_status', 'is_notarized', 'notarized_file', 'notarized_file_url',
+            'notarized_generated_at'
+        )
+
+    def to_internal_value(self, data):
+        mutable_data = data.copy()
+        for field_name in ('tags', 'metadata', 'extracted_fields'):
+            value = mutable_data.get(field_name)
+            if isinstance(value, str):
+                try:
+                    mutable_data[field_name] = json.loads(value)
+                except json.JSONDecodeError:
+                    pass
+        return super().to_internal_value(mutable_data)
 
     def get_role(self, obj):
         request = self.context.get('request')
@@ -151,6 +183,15 @@ class FileSerializer(serializers.ModelSerializer):
         if obj.file and hasattr(obj.file, 'url'):
             return request.build_absolute_uri(obj.file.url)
         return None
+
+    def get_notarized_file_url(self, obj):
+        request = self.context.get('request')
+        if obj.notarized_file and hasattr(obj.notarized_file, 'url'):
+            return request.build_absolute_uri(obj.notarized_file.url)
+        return None
+
+    def get_document_type_label(self, obj):
+        return get_document_type_label(obj.document_type)
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

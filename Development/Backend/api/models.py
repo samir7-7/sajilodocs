@@ -62,12 +62,20 @@ class File(models.Model):
 
     status = models.CharField(max_length=10, choices=FileStatus.choices, default=FileStatus.ACTIVE)
     ocr_text = models.TextField(blank=True, null=True)
+    corrected_ocr_text = models.TextField(blank=True, null=True)
     ocr_status = models.CharField(
         max_length=20, 
         choices=OCRStatus.choices, 
         default=OCRStatus.PENDING
     )
     ocr_extracted_at = models.DateTimeField(null=True, blank=True)
+    document_type = models.CharField(max_length=100, blank=True, null=True)
+    document_type_confidence = models.FloatField(null=True, blank=True)
+    document_type_source = models.CharField(max_length=20, blank=True, null=True)
+    extracted_fields = models.JSONField(default=dict, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    expiry_text = models.CharField(max_length=255, blank=True, null=True)
+    expiry_notification_sent_at = models.DateTimeField(null=True, blank=True)
     
     translated_text = models.TextField(blank=True, null=True)
     translation_status = models.CharField(
@@ -80,6 +88,7 @@ class File(models.Model):
     locked_at = models.DateTimeField(null=True, blank=True)
     is_notarized = models.BooleanField(default=False)
     notarized_file = models.FileField(upload_to='notarized/', null=True, blank=True)
+    notarized_generated_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.name

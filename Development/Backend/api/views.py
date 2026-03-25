@@ -18,6 +18,14 @@ import io
 from docx import Document
 from htmldocx import HtmlToDocx
 from django.core.files.base import ContentFile
+from .document_reconstruction import (
+    analyze_document,
+    apply_analysis_to_file,
+    get_supported_document_types,
+    save_reconstructed_pdf,
+    should_require_manual_document_type,
+)
+from .notification_utils import create_expiry_notifications
 
 class IsOwnerOrEditor(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -174,6 +182,15 @@ class FileViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsOwnerOrEditor()]
         return [permissions.IsAuthenticated()]
 
+    def _user_can_edit(self, file, user):
+        if file.owner == user:
+            return True
+        return FileShare.objects.filter(
+            file=file,
+            shared_with=user,
+            permission='EDIT'
+        ).filter(Q(expires_at__gt=timezone.now()) | Q(expires_at__isnull=True)).exists()
+
     def perform_create(self, serializer):
         file_obj = self.request.FILES.get('file')
         size = str(file_obj.size) if file_obj else "0"
@@ -182,11 +199,13 @@ class FileViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
+        updated_fields = list(self.request.data.keys())
+        action = AuditLog.Action.RENAME if updated_fields == ['name'] else AuditLog.Action.EDIT
         AuditLog.objects.create(
             user=self.request.user,
             file=instance,
-            action='RENAME' if 'name' in self.request.data else 'GRANT', # Simplified for now
-            details={'updated_fields': list(self.request.data.keys())}
+            action=action,
+            details={'updated_fields': updated_fields}
         )
 
     @action(detail=True, methods=['post'])
@@ -288,12 +307,8 @@ class FileViewSet(viewsets.ModelViewSet):
         file = self.get_object()
         
         # Check permissions
-        if file.owner != request.user:
-            can_edit = FileShare.objects.filter(
-                file=file, shared_with=request.user, permission='EDIT'
-            ).filter(Q(expires_at__gt=timezone.now()) | Q(expires_at__isnull=True)).exists()
-            if not can_edit:
-                return Response({"error": "No permission to run OCR"}, status=status.HTTP_403_FORBIDDEN)
+        if not self._user_can_edit(file, request.user):
+            return Response({"error": "No permission to run OCR"}, status=status.HTTP_403_FORBIDDEN)
 
         if file.ocr_status == 'PROCESSING':
             return Response({"error": "OCR is already in progress"}, status=status.HTTP_409_CONFLICT)
@@ -316,6 +331,7 @@ class FileViewSet(viewsets.ModelViewSet):
         from .ocr import OCRProcessor
         
         def process_ocr_task(file_id, user_id):
+            curr_user = None
             try:
                 from .models import File, Notification
                 curr_file = File.objects.get(id=file_id)
@@ -324,19 +340,32 @@ class FileViewSet(viewsets.ModelViewSet):
                 # Perform OCR
                 text = OCRProcessor.process_file(curr_file.file.path)
                 text = text.strip() if text else ""
+                analysis = analyze_document(
+                    tags=curr_file.tags,
+                    metadata=curr_file.metadata,
+                    text=text,
+                    file_name=curr_file.name,
+                    preserve_manual_document_type=curr_file.document_type if curr_file.document_type_source == 'MANUAL' else None,
+                    preferred_document_type_source=curr_file.document_type_source if curr_file.document_type_source == 'MANUAL' else None,
+                )
                 
                 # Update file
                 curr_file.ocr_text = text
+                curr_file.corrected_ocr_text = text
                 curr_file.ocr_status = 'COMPLETED'
                 curr_file.ocr_extracted_at = timezone.now()
+                apply_analysis_to_file(curr_file, analysis, reviewed_text=text)
                 curr_file.save()
                 
                 # Create notification
                 if text:
+                    expiry_note = ""
+                    if curr_file.expiry_text:
+                        expiry_note = f" Expiry detected: {curr_file.expiry_text}."
                     Notification.objects.create(
                         user=curr_user,
                         title="OCR Completed",
-                        message=f"Text extraction for '{curr_file.name}' is complete.",
+                        message=f"Text extraction for '{curr_file.name}' is complete.{expiry_note}",
                         type='SUCCESS'
                     )
                 else:
@@ -356,19 +385,98 @@ class FileViewSet(viewsets.ModelViewSet):
                     failed_file.ocr_status = 'FAILED'
                     failed_file.save()
                     
-                    Notification.objects.create(
-                        user=curr_user,
-                        title="OCR Failed",
-                        message=f"Text extraction for '{failed_file.name}' failed: {str(e)}",
-                        type='ERROR'
-                    )
-                except:
+                    if curr_user:
+                        Notification.objects.create(
+                            user=curr_user,
+                            title="OCR Failed",
+                            message=f"Text extraction for '{failed_file.name}' failed: {str(e)}",
+                            type='ERROR'
+                        )
+                except Exception:
                     pass
 
         thread = threading.Thread(target=process_ocr_task, args=(file.id, request.user.id))
         thread.start()
 
         return Response({"status": "OCR started in background", "ocr_status": "PROCESSING"})
+
+    @action(detail=True, methods=['post'])
+    def generate_notarized(self, request, pk=None):
+        file = self.get_object()
+
+        if not self._user_can_edit(file, request.user):
+            return Response({"error": "No permission to generate reconstructed PDF"}, status=status.HTTP_403_FORBIDDEN)
+
+        reviewed_text = (request.data.get('corrected_ocr_text') or file.corrected_ocr_text or file.ocr_text or "").strip()
+        if not reviewed_text:
+            return Response({"error": "No OCR text available. Run OCR first."}, status=status.HTTP_400_BAD_REQUEST)
+
+        selected_document_type = (request.data.get('document_type') or "").strip() or None
+        preferred_document_type = None
+        preferred_document_type_source = None
+        if file.document_type and not selected_document_type:
+            if file.document_type_source == 'MANUAL':
+                preferred_document_type = file.document_type
+                preferred_document_type_source = 'MANUAL'
+            elif (file.document_type_confidence or 0) >= 0.72:
+                preferred_document_type = file.document_type
+                preferred_document_type_source = file.document_type_source or 'CONTENT'
+
+        analysis = analyze_document(
+            tags=file.tags,
+            metadata=file.metadata,
+            text=reviewed_text,
+            file_name=file.name,
+            selected_document_type=selected_document_type,
+            preserve_manual_document_type=preferred_document_type,
+            preferred_document_type_source=preferred_document_type_source,
+        )
+
+        if selected_document_type is None and should_require_manual_document_type(file, analysis):
+            return Response(
+                {
+                    "error": "Document type selection is required before generating the reconstructed version.",
+                    "requires_document_type": True,
+                    "detected_document_type": analysis.get("detected_document_type"),
+                    "detected_document_type_label": analysis.get("detected_document_type_label"),
+                    "document_type_confidence": analysis.get("document_type_confidence"),
+                    "supported_document_types": get_supported_document_types(),
+                    "candidates": analysis.get("detection_candidates", []),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        apply_analysis_to_file(file, analysis, reviewed_text=reviewed_text)
+        save_reconstructed_pdf(file)
+        file.save()
+
+        AuditLog.objects.create(
+            user=request.user,
+            file=file,
+            action=AuditLog.Action.EDIT,
+            details={
+                'action': 'generate_notarized',
+                'document_type': file.document_type,
+                'expiry_date': file.expiry_date.isoformat() if file.expiry_date else None,
+            }
+        )
+
+        Notification.objects.create(
+            user=request.user,
+            title="Reconstructed PDF Ready",
+            message=f"Your reconstructed copy for '{file.name}' is ready to download.",
+            type='SUCCESS'
+        )
+
+        serializer = self.get_serializer(file)
+        return Response(
+            {
+                "status": "generated",
+                "file": serializer.data,
+                "notarized_file_url": serializer.data.get("notarized_file_url"),
+                "supported_document_types": get_supported_document_types(),
+            }
+        )
 
     @action(detail=True, methods=['post'])
     def translate(self, request, pk=None):
@@ -523,6 +631,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        create_expiry_notifications(user=self.request.user)
         return Notification.objects.filter(user=self.request.user).order_by('-created_at')
 
     @action(detail=True, methods=['post'])

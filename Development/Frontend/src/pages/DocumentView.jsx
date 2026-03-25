@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Download, Printer, Trash2, Share2, 
@@ -14,6 +14,16 @@ import { cn } from '../utils/cn';
 import DocxEditor from '../components/features/DocxRichEditor';
 import ConfirmModal from '../components/common/ConfirmModal';
 
+const SUPPORTED_DOCUMENT_TYPES = [
+  { value: 'citizenship_certificate', label: 'Citizenship Certificate' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'birth_certificate', label: 'Birth Certificate' },
+  { value: 'land_document', label: 'Land Lease / Land Document' },
+];
+
+const isSupportedDocumentType = (value) =>
+  SUPPORTED_DOCUMENT_TYPES.some((item) => item.value === value);
+
 const DocumentView = () => {
   const { fileId } = useParams();
   const navigate = useNavigate();
@@ -21,18 +31,20 @@ const DocumentView = () => {
   const { showToast } = useToast();
   
   // Find file or use mock if not found (for testing direct route)
-  const file = files.find(f => f.id === fileId) || {
-    id: 'mock',
-    name: 'annual_report_2023.pdf',
-    type: 'pdf',
-    size: '2.4 MB',
-    createdAt: new Date().toISOString(),
-    folder: null,
-    tags: ['Report', 'Finance', 'Q4'],
-    metadata: {
-      author: 'Corporate Inc.',
+  const file = useMemo(() => (
+    files.find(f => f.id === fileId) || {
+      id: 'mock',
+      name: 'annual_report_2023.pdf',
+      type: 'pdf',
+      size: '2.4 MB',
+      createdAt: new Date().toISOString(),
+      folder: null,
+      tags: ['Report', 'Finance', 'Q4'],
+      metadata: {
+        author: 'Corporate Inc.',
+      }
     }
-  };
+  ), [files, fileId]);
 
   const parentFolder = folders.find(f => f.id === file.folder);
 
@@ -48,6 +60,13 @@ const DocumentView = () => {
             author: file.metadata?.author || '',
             tags: file.tags || []
         });
+        setOcrReviewText(file.corrected_ocr_text || file.ocr_text || '');
+        setDocumentTypeValue(
+          isSupportedDocumentType(file.document_type) ? file.document_type : file.document_type ? 'other' : ''
+        );
+        setCustomDocumentType(
+          file.document_type && !isSupportedDocumentType(file.document_type) ? file.document_type : ''
+        );
     }
   }, [file]);
 
@@ -63,7 +82,16 @@ const DocumentView = () => {
   const [isOCRProcessing, setIsOCRProcessing] = useState(file.ocr_status === 'PROCESSING');
   const [isTranslationProcessing, setIsTranslationProcessing] = useState(file.translation_status === 'PROCESSING');
   const [targetLanguage, setTargetLanguage] = useState('English');
+  const [ocrReviewText, setOcrReviewText] = useState(file.corrected_ocr_text || file.ocr_text || '');
+  const [documentTypeValue, setDocumentTypeValue] = useState(
+    isSupportedDocumentType(file.document_type) ? file.document_type : file.document_type ? 'other' : ''
+  );
+  const [customDocumentType, setCustomDocumentType] = useState(
+    file.document_type && !isSupportedDocumentType(file.document_type) ? file.document_type : ''
+  );
+  const [isGeneratingNotarized, setIsGeneratingNotarized] = useState(false);
   const languages = ['English', 'Nepali', 'Spanish', 'Hindi', 'Chinese', 'Japanese', 'French', 'German'];
+  const resolvedDocumentType = documentTypeValue === 'other' ? customDocumentType.trim() : documentTypeValue;
 
   const editorRef = React.useRef(null);
 
@@ -76,7 +104,9 @@ const DocumentView = () => {
 
         await updateFile(file.id, { 
             metadata: { ...file.metadata, author: localMetadata.author },
-            tags: localMetadata.tags
+            tags: localMetadata.tags,
+            corrected_ocr_text: ocrReviewText,
+            ...(resolvedDocumentType ? { document_type: resolvedDocumentType } : {})
         });
         showToast('Changes saved successfully!');
     } catch (error) {
@@ -117,6 +147,19 @@ const DocumentView = () => {
     } else {
       showToast('File URL not available', 'error');
     }
+  };
+
+  const startDownload = (url, filename) => {
+    if (!url) {
+      showToast('Download URL not available', 'error');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {
@@ -168,6 +211,52 @@ const DocumentView = () => {
     }
   };
 
+  const handleGenerateNotarized = async () => {
+    if (!ocrReviewText.trim()) {
+      showToast('Review or save the OCR text before generating the reconstructed PDF.', 'warning');
+      setActiveView('ocr');
+      return;
+    }
+
+    if (documentTypeValue === 'other' && !customDocumentType.trim()) {
+      showToast('Enter the document type before generating the reconstructed PDF.', 'warning');
+      return;
+    }
+
+    try {
+      setIsGeneratingNotarized(true);
+      const response = await fileAPI.generateNotarized(file.id, {
+        corrected_ocr_text: ocrReviewText,
+        ...(resolvedDocumentType ? { document_type: resolvedDocumentType } : {}),
+      });
+
+      const updatedFile = response.data?.file;
+      if (updatedFile && setFiles) {
+        setFiles(prev => prev.map(f => f.id === file.id ? updatedFile : f));
+      }
+
+      const downloadUrl = response.data?.notarized_file_url || updatedFile?.notarized_file_url;
+      if (downloadUrl) {
+        startDownload(downloadUrl, `${file.name.replace(/\.[^.]+$/, '') || file.name}_reconstructed.pdf`);
+      }
+      showToast('Reconstructed PDF is ready for download.', 'success');
+    } catch (error) {
+      console.error('Reconstruction failed:', error);
+      const responseData = error.response?.data;
+      if (responseData?.requires_document_type) {
+        setActiveView('ocr');
+        if (responseData.detected_document_type && !resolvedDocumentType) {
+          setDocumentTypeValue(responseData.detected_document_type);
+        }
+        showToast('Select the document type before generating the reconstructed PDF.', 'warning');
+      } else {
+        showToast(responseData?.error || 'Failed to generate reconstructed PDF', 'error');
+      }
+    } finally {
+      setIsGeneratingNotarized(false);
+    }
+  };
+
   // Poll for OCR status if processing
   useEffect(() => {
     let interval;
@@ -202,7 +291,7 @@ const DocumentView = () => {
     }
     
     return () => clearInterval(interval);
-  }, [file.ocr_status, file.id]);
+  }, [file.ocr_status, file.id, setFiles, showToast]);
 
   const isOCRSupported = (file) => {
     const supportedExts = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
@@ -266,7 +355,7 @@ const DocumentView = () => {
     }
     
     return () => clearInterval(interval);
-  }, [file.translation_status, file.id]);
+  }, [file.translation_status, file.id, setFiles, showToast]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -465,25 +554,55 @@ const DocumentView = () => {
                   <div className="w-full h-full flex flex-col bg-white">
                     <div className="p-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900">Extracted Text</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Processed via OCR Engine</p>
+                        <h3 className="text-lg font-bold text-slate-900">Review Extracted Text</h3>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Edit OCR output before generating the reconstructed PDF</p>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2 font-bold"
-                        onClick={() => {
-                          navigator.clipboard.writeText(file.ocr_text);
-                          showToast('Copied to clipboard!', 'success');
-                        }}
-                      >
-                        <Save size={14} /> Copy Text
-                      </Button>
+                      <div className="flex items-center gap-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2 font-bold"
+                          onClick={() => {
+                            navigator.clipboard.writeText(ocrReviewText);
+                            showToast('Copied to clipboard!', 'success');
+                          }}
+                        >
+                          <Save size={14} /> Copy Text
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="gap-2 font-bold"
+                          onClick={handleSave}
+                          disabled={file.role === 'VIEW'}
+                        >
+                          <Save size={14} /> Save Review
+                        </Button>
+                      </div>
                     </div>
-                    <div className="p-12 prose prose-slate max-w-none prose-sm overflow-y-auto">
-                      <pre className="whitespace-pre-wrap font-sans text-slate-600 leading-relaxed text-base bg-slate-50 p-8 rounded-2xl border border-slate-100 min-h-[800px]">
-                        {file.ocr_text || 'No text extracted yet.'}
-                      </pre>
+                    <div className="p-8 lg:p-12 overflow-y-auto space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Detected Type</p>
+                          <p className="mt-2 text-sm font-bold text-slate-900">{file.document_type_label || 'Needs confirmation'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Expiry Metadata</p>
+                          <p className="mt-2 text-sm font-bold text-slate-900">{file.expiry_text || 'Not detected'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">OCR Status</p>
+                          <p className="mt-2 text-sm font-bold text-slate-900">{file.ocr_status}</p>
+                        </div>
+                      </div>
+                      <div className="rounded-[28px] border border-slate-100 bg-slate-50 p-4">
+                        <textarea
+                          value={ocrReviewText}
+                          onChange={(e) => setOcrReviewText(e.target.value)}
+                          readOnly={file.role === 'VIEW'}
+                          className="w-full min-h-[820px] resize-none rounded-[22px] border border-slate-200 bg-white px-6 py-6 text-sm leading-7 text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-[#4f46e5]/30"
+                          placeholder="OCR text will appear here after processing completes..."
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : activeView === 'translation' ? (
@@ -733,14 +852,14 @@ const DocumentView = () => {
 
             <div className="pt-6 border-t border-slate-50">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">OCR (Text Recognition)</h3>
-              <div className="bg-slate-50 rounded-2xl p-5 text-center border border-slate-100">
+              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                 <Button 
                   variant={file.ocr_status === 'COMPLETED' ? 'outline' : 'primary'} 
                   className={cn(
                     "w-full gap-2.5 h-11 font-bold transition-all shadow-sm",
                     isOCRProcessing && "animate-pulse"
                   )}
-                  disabled={!isOCRSupported(file) || isOCRProcessing}
+                  disabled={!isOCRSupported(file) || isOCRProcessing || file.role === 'VIEW'}
                   onClick={handleRunOCR}
                 >
                   {isOCRProcessing ? (
@@ -764,12 +883,82 @@ const DocumentView = () => {
                   </span>
                 </div>
                 {file.ocr_status === 'COMPLETED' && (
-                  <button 
-                    onClick={() => setActiveView(activeView === 'ocr' ? 'original' : 'ocr')}
-                    className="mt-4 text-[10px] font-bold text-[#4f46e5] underline uppercase tracking-widest block w-full hover:text-[#4338ca] transition-colors"
-                  >
-                    {activeView === 'ocr' ? 'View Original' : 'View Extracted Text'}
-                  </button>
+                  <div className="mt-5 space-y-4">
+                    <button 
+                      onClick={() => setActiveView(activeView === 'ocr' ? 'original' : 'ocr')}
+                      className="text-[10px] font-bold text-[#4f46e5] underline uppercase tracking-widest block w-full hover:text-[#4338ca] transition-colors"
+                    >
+                      {activeView === 'ocr' ? 'View Original' : 'Review Extracted Text'}
+                    </button>
+
+                    <div className="space-y-3 text-left">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                          Document Type
+                        </label>
+                        <select
+                          value={documentTypeValue}
+                          onChange={(e) => setDocumentTypeValue(e.target.value)}
+                          disabled={file.role === 'VIEW'}
+                          className="w-full rounded-xl border border-transparent bg-white px-3 py-3 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/10 transition-all"
+                        >
+                          <option value="">Auto-detect / Select</option>
+                          {SUPPORTED_DOCUMENT_TYPES.map((docType) => (
+                            <option key={docType.value} value={docType.value}>{docType.label}</option>
+                          ))}
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+
+                      {documentTypeValue === 'other' && (
+                        <Input
+                          value={customDocumentType}
+                          onChange={(e) => setCustomDocumentType(e.target.value)}
+                          placeholder="Enter custom document type"
+                          className="bg-white border-transparent text-sm"
+                        />
+                      )}
+
+                      <div className="rounded-xl bg-white border border-slate-100 p-3 space-y-2">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Detected Type</p>
+                          <p className="mt-1 text-xs font-bold text-slate-800">{file.document_type_label || 'Needs confirmation'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Expiry Found</p>
+                          <p className="mt-1 text-xs font-bold text-slate-800">{file.expiry_text || 'No expiry metadata detected'}</p>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="secondary"
+                        className="w-full gap-2.5 h-11 font-bold shadow-sm"
+                        onClick={handleSave}
+                        disabled={file.role === 'VIEW'}
+                      >
+                        <Save size={16} /> Save OCR Review
+                      </Button>
+
+                      <Button
+                        className="w-full gap-2.5 h-11 font-bold shadow-lg shadow-indigo-100/50"
+                        onClick={handleGenerateNotarized}
+                        disabled={file.role === 'VIEW' || isGeneratingNotarized}
+                      >
+                        <Download size={16} />
+                        {isGeneratingNotarized ? 'Generating...' : 'Download Notarized Version'}
+                      </Button>
+
+                      {file.notarized_file_url && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 h-11 font-bold"
+                          onClick={() => startDownload(file.notarized_file_url, `${file.name.replace(/\.[^.]+$/, '') || file.name}_reconstructed.pdf`)}
+                        >
+                          <Download size={16} /> Download Current Copy
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )}
                 {file.translation_status === 'COMPLETED' && (
                   <button 
@@ -810,7 +999,7 @@ const DocumentView = () => {
                     isTranslationProcessing && "animate-pulse"
                 )}
                 onClick={handleTranslate}
-                disabled={isTranslationProcessing || !file.ocr_text}
+                disabled={isTranslationProcessing || !file.ocr_text || file.role === 'VIEW'}
               >
                 {isTranslationProcessing ? (
                     'Translating...'
