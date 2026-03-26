@@ -1,16 +1,21 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, File } from 'lucide-react';
-import { Input } from '../common/Input';
-import { cn } from '../../utils/cn';
-import { Button } from '../common/Button';
+import React, { useState, useRef } from "react";
+import { X, Upload, File } from "lucide-react";
+import { Input } from "../common/Input";
+import { cn } from "../../utils/cn";
+import { Button } from "../common/Button";
 
-const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) => {
+const UploadFileModal = ({
+  isOpen,
+  onClose,
+  onUpload,
+  initialFolderId = null,
+}) => {
   const [file, setFile] = useState(null);
   const [metadata, setMetadata] = useState({
-    description: '',
-    tags: '',
-    author: '',
-    category: '',
+    description: "",
+    tags: "",
+    author: "",
+    category: "",
   });
   const fileInputRef = useRef(null);
 
@@ -26,79 +31,101 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
     setMetadata({ ...metadata, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return;
+
+    const metadataPayload = {
+      author: metadata.author,
+      category: metadata.category,
+      description: metadata.description,
+    };
 
     const fileData = {
       file: file,
       name: file.name,
       type: file.type,
-      size: (file.size / 1024).toFixed(1) + ' KB',
+      size: (file.size / 1024).toFixed(1) + " KB",
       description: metadata.description,
-      tags: metadata.tags.split(',').map(t => t.trim()).filter(Boolean),
-      metadata: {
-        author: metadata.author,
-        category: metadata.category,
-        description: metadata.description,
-      },
+      tags: metadata.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      metadata: metadataPayload,
       folder: initialFolderId,
     };
 
-    onUpload(fileData);
-    
-    // Reset
-    setFile(null);
-    setMetadata({ description: '', tags: '', author: '', category: '' });
-    onClose();
+    const result = await onUpload(fileData);
+    if (result?.success) {
+      // Reset only after successful upload.
+      setFile(null);
+      setMetadata({ description: "", tags: "", author: "", category: "" });
+      onClose();
+      return;
+    }
+
+    alert(result?.error || "Failed to upload file");
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md transition-all">
       <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300">
         <div className="px-8 pt-8 pb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Upload Files</h2>
-          <button 
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Upload Files
+          </h2>
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-8">
           {/* File Drop Area */}
-          <div 
+          <div
             className={cn(
               "group border-2 border-dashed rounded-[20px] p-12 text-center cursor-pointer transition-all duration-300 relative overflow-hidden",
-              file 
-                ? "border-[#4f46e5] bg-indigo-50/30" 
-                : "border-slate-200 hover:border-[#4f46e5] hover:bg-slate-50/50"
+              file
+                ? "border-[#4f46e5] bg-indigo-50/30"
+                : "border-slate-200 hover:border-[#4f46e5] hover:bg-slate-50/50",
             )}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
               onChange={handleFileChange}
             />
-            
+
             {file ? (
               <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2">
                 <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-indigo-100">
-                   <File size={32} className="text-[#4f46e5]" />
+                  <File size={32} className="text-[#4f46e5]" />
                 </div>
-                <span className="font-bold text-slate-900 mb-1">{file.name}</span>
-                <span className="text-sm text-slate-400 font-medium">{(file.size / 1024).toFixed(1)} KB</span>
+                <span className="font-bold text-slate-900 mb-1">
+                  {file.name}
+                </span>
+                <span className="text-sm text-slate-400 font-medium">
+                  {(file.size / 1024).toFixed(1)} KB
+                </span>
               </div>
             ) : (
               <div className="flex flex-col items-center">
                 <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 border border-slate-100 group-hover:border-[#4f46e5]/30 transition-colors">
-                   <Upload size={32} className="text-slate-300 group-hover:text-[#4f46e5] transition-colors" />
+                  <Upload
+                    size={32}
+                    className="text-slate-300 group-hover:text-[#4f46e5] transition-colors"
+                  />
                 </div>
-                <span className="font-bold text-slate-900 mb-1">Select a file to upload</span>
-                <span className="text-sm text-slate-400 font-medium">or drag and drop here</span>
+                <span className="font-bold text-slate-900 mb-1">
+                  Select a file to upload
+                </span>
+                <span className="text-sm text-slate-400 font-medium">
+                  or drag and drop here
+                </span>
               </div>
             )}
           </div>
@@ -144,18 +171,18 @@ const UploadFileModal = ({ isOpen, onClose, onUpload, initialFolderId = null }) 
               onChange={handleMetadataChange}
             />
           </div>
-          
+
           <div className="flex items-center gap-4 pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               className="flex-1 h-12 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold transition-all"
               onClick={onClose}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={!file}
               className="flex-1 h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:shadow-none"
             >

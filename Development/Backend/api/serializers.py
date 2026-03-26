@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+import ast
 import json
 from .models import Folder, File, FolderShare, FileShare, Notification, OTPVerification
 from .validators import ComplexityValidator
@@ -160,13 +161,35 @@ class FileSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         mutable_data = data.copy()
+        defaults = {
+            'tags': [],
+            'metadata': {},
+            'extracted_fields': {},
+        }
+
         for field_name in ('tags', 'metadata', 'extracted_fields'):
             value = mutable_data.get(field_name)
             if isinstance(value, str):
+                raw = value.strip()
+
+                if raw == '' or raw.lower() in ('undefined', 'null'):
+                    mutable_data[field_name] = defaults[field_name]
+                    continue
+
                 try:
-                    mutable_data[field_name] = json.loads(value)
+                    mutable_data[field_name] = json.loads(raw)
                 except json.JSONDecodeError:
-                    pass
+                    # Accept Python-literal style payloads like "{'a': 1}" from legacy clients.
+                    try:
+                        parsed = ast.literal_eval(raw)
+                        mutable_data[field_name] = parsed
+                    except (ValueError, SyntaxError):
+                        if field_name == 'tags':
+                            mutable_data[field_name] = [
+                                tag.strip() for tag in raw.split(',') if tag.strip()
+                            ]
+                        else:
+                            mutable_data[field_name] = defaults[field_name]
         return super().to_internal_value(mutable_data)
 
     def get_role(self, obj):
